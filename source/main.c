@@ -1,12 +1,22 @@
-/*#include <gl2d.h>
+#include <gl2d.h>
 #include <nds.h>
-
+#include <stdarg.h>
 typedef struct Color {
     unsigned char r;
     unsigned char g;
     unsigned char b;
     unsigned char a;
 } Color;
+
+typedef struct
+{
+    //todo fill
+}Image;
+
+typedef struct
+{
+ //todo fill
+}FilePathList;
 typedef struct
 {
     bool pollEvents;
@@ -14,6 +24,31 @@ typedef struct
     float frameTime;
     bool windowReady;
 }dsCore;
+
+typedef enum {
+    LOG_ALL = 0,
+    LOG_TRACE,
+    LOG_DEBUG,
+    LOG_INFO,
+    LOG_WARNING,
+    LOG_ERROR,
+    LOG_FATAL,
+    LOG_NONE
+} TraceLogLevel;
+
+
+
+void TRACELOG(int logType, const char *text, ...)
+{
+    
+    va_list args;
+    va_start(args, text);
+    vprintf(text, args);
+    va_end(args);
+
+    printf("\n");
+}
+
 
 dsCore DS;
 void InitWindow(int width, int height, const char* title)
@@ -151,7 +186,7 @@ float GetFrameTime()
 
 float GetTime()
 {
-    int ticks = cpuGetTiming;
+    u32  ticks = cpuGetTiming();
     return ticks / BUS_CLOCK;
 }
 
@@ -166,7 +201,7 @@ int GetRandomValue(int min, int max)
         max = min;
         min = tmp;
     }
-    value = (rand()%(abs(max - min) + 1) + min);
+    int value = (rand()%(abs(max - min) + 1) + min);
 
     return value;
 }
@@ -174,7 +209,7 @@ int GetRandomValue(int min, int max)
 void TakeScreenshot(const char* filename) //only captures top screen,
 {
     vramSetBankD(VRAM_D_LCD);
-    REG_DISPCAPCNT = DCAP_BANK(3) | DCAP_SIZE_256x192 | DCAP_SRC_A | DCAP_ENABLE;
+    REG_DISPCAPCNT = DCAP_BANK(DCAP_BANK_VRAM_D) | DCAP_SIZE(DCAP_SIZE_256x192) | DCAP_MODE(DCAP_SRC_A(DCAP_SRC_A_COMPOSITED))  | DCAP_ENABLE;
     swiWaitForVBlank();
     u16* screen = VRAM_D;
     //todo just capture using y * 256 * x (either rgb555 or bgr555)
@@ -203,7 +238,7 @@ unsigned char *LoadFileData(const char *fileName, int *dataSize)
 
     if (fileName != NULL)
     {
-        if (loadFileData) return loadFileData(fileName, dataSize);
+        //if (loadFileData) return loadFileData(fileName, dataSize); tf?
 
         FILE *file = fopen(fileName, "rb");
 
@@ -237,7 +272,7 @@ unsigned char *LoadFileData(const char *fileName, int *dataSize)
                     {
                         *dataSize = (int)count;
 
-                        if ((*dataSize) != size) printf(LOG_WARNING, "FILEIO: [%s] File partially loaded (%i bytes out of %i)", fileName, *dataSize, size);
+                        if ((*dataSize) != size) printf("FILEIO: [%s] File partially loaded (%i bytes out of %i)", fileName, *dataSize, size);
                         else printf("FILEIO: [%s] File loaded successfully", fileName);
                     }
                 }
@@ -258,18 +293,145 @@ void UnloadFileData(unsigned char *data)
 {
     free(data);
 }// Unload file data allocated by LoadFileData()
-bool SaveFileData(const char *fileName, void *data, int dataSize); // Save data to file from byte array (write), returns true on success
-bool ExportDataAsCode(const unsigned char *data, int dataSize, const char *fileName); // Export data to code (.h), returns true on success
-char *LoadFileText(const char *fileName);                     // Load text data from file (read), returns a '\0' terminated string
+bool SaveFileData(const char *fileName, const void *data, int dataSize)
+{
+    bool result = false;
+
+    if (fileName != NULL)
+    {
+        //if (saveFileData) return saveFileData(fileName, data, dataSize); ??
+
+        FILE *file = fopen(fileName, "wb");
+
+        if (file != NULL)
+        {
+            // WARNING: fwrite() returns a size_t value, usually 'unsigned int' (32bit compilation) and 'unsigned long long' (64bit compilation)
+            // and expects a size_t input value but as dataSize is limited to INT_MAX (2147483647 bytes), there shouldn't be a problem
+            int count = (int)fwrite(data, sizeof(unsigned char), dataSize, file);
+
+            if (count == 0) printf("FILEIO: [%s] Failed to write file", fileName);
+            else if (count != dataSize) printf("FILEIO: [%s] File partially written", fileName);
+            else printf("FILEIO: [%s] File saved successfully", fileName);
+
+            int closed = fclose(file);
+            if (closed == 0) result = true;
+        }
+        else printf("FILEIO: [%s] Failed to open file", fileName);
+    }
+    else printf("FILEIO: File name provided is not valid");
+
+    return result;
+} // Save data to file from byte array (write), returns true on success
+bool ExportDataAsCode(const unsigned char *data, int dataSize, const char *fileName)
+{
+    bool result = false;
+
+#ifndef TEXT_BYTES_PER_LINE
+    #define TEXT_BYTES_PER_LINE     20
+#endif
+
+    // NOTE: Text data buffer size is estimated considering raw data size in bytes
+    // and requiring 6 char bytes for every byte: "0x00, "
+    char *txtData = (char *)calloc(dataSize*6 + 2000, sizeof(char));
+
+    int byteCount = 0;
+    byteCount += sprintf(txtData + byteCount, "////////////////////////////////////////////////////////////////////////////////////////\n");
+    byteCount += sprintf(txtData + byteCount, "//                                                                                    //\n");
+    byteCount += sprintf(txtData + byteCount, "// DataAsCode exporter v1.0 - Raw data exported as an array of bytes                  //\n");
+    byteCount += sprintf(txtData + byteCount, "//                                                                                    //\n");
+    byteCount += sprintf(txtData + byteCount, "// more info and bugs-report:  github.com/raysan5/raylib                              //\n");
+    byteCount += sprintf(txtData + byteCount, "// feedback and support:       ray[at]raylib.com                                      //\n");
+    byteCount += sprintf(txtData + byteCount, "//                                                                                    //\n");
+    byteCount += sprintf(txtData + byteCount, "// Copyright (c) 2022-2026 Ramon Santamaria (@raysan5)                                //\n");
+    byteCount += sprintf(txtData + byteCount, "//                                                                                    //\n");
+    byteCount += sprintf(txtData + byteCount, "////////////////////////////////////////////////////////////////////////////////////////\n\n");
+
+    // Get file name from path
+    char varFileName[256] = { 0 };
+    snprintf(varFileName, 256, "%s", GetFileNameWithoutExt(fileName));
+    for (int i = 0; varFileName[i] != '\0'; i++)
+    {
+        // Convert variable name to uppercase
+        if ((varFileName[i] >= 'a') && (varFileName[i] <= 'z')) { varFileName[i] = varFileName[i] - 32; }
+        // Replace non valid character for C identifier with '_'
+        else if (varFileName[i] == '.' || varFileName[i] == '-' || varFileName[i] == '?' || varFileName[i] == '!' || varFileName[i] == '+') { varFileName[i] = '_'; }
+    }
+
+    byteCount += sprintf(txtData + byteCount, "#define %s_DATA_SIZE     %i\n\n", varFileName, dataSize);
+
+    byteCount += sprintf(txtData + byteCount, "static unsigned char %s_DATA[%s_DATA_SIZE] = { ", varFileName, varFileName);
+    for (int i = 0; i < (dataSize - 1); i++) byteCount += sprintf(txtData + byteCount, ((i%TEXT_BYTES_PER_LINE == 0)? "0x%x,\n" : "0x%x, "), data[i]);
+    byteCount += sprintf(txtData + byteCount, "0x%x };\n", data[dataSize - 1]);
+
+    // NOTE: Text data size exported is determined by '\0' (NULL) character
+    result = SaveFileText(fileName, txtData);
+
+    free(txtData);
+
+    if (result != 0) printf("FILEIO: [%s] Data as code exported successfully", fileName);
+    else printf("FILEIO: [%s] Failed to export data as code", fileName);
+
+    return result;
+} // Export data to code (.h), returns true on success
+char *LoadFileText(const char *fileName)
+{
+    char *text = NULL;
+
+    if (fileName != NULL)
+    {
+       // if (loadFileText) return loadFileText(fileName);
+
+        FILE *file = fopen(fileName, "rt");
+
+        if (file != NULL)
+        {
+            // WARNING: When reading a file as 'text' file,
+            // text mode causes carriage return-linefeed translation...
+            // ...but using fseek() should return correct byte-offset
+            fseek(file, 0, SEEK_END);
+            unsigned int size = (unsigned int)ftell(file);
+            fseek(file, 0, SEEK_SET);
+
+            if (size > 0)
+            {
+                text = (char *)calloc(size + 1, sizeof(char));
+
+                if (text != NULL)
+                {
+                    unsigned int count = (unsigned int)fread(text, sizeof(char), size, file);
+
+                    // WARNING: \r\n is converted to \n on reading, so,
+                    // read bytes count gets reduced by the number of lines
+                    if (count < size) text = (char *)realloc(text, count + 1);
+
+                    // Zero-terminate the string
+                    text[count] = '\0';
+
+                    printf("FILEIO: [%s] Text file loaded successfully", fileName);
+                }
+                else printf("FILEIO: [%s] Failed to allocated memory for file reading", fileName);
+            }
+            else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to read text file", fileName);
+
+            fclose(file);
+        }
+        else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to open text file", fileName);
+    }
+    else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
+
+    return text;
+}
+
+// Load text data from file (read), returns a '\0' terminated string
 void UnloadFileText(char *text);                              // Unload file text data allocated by LoadFileText()
 bool SaveFileText(const char *fileName, const char *text);    // Save text data to file (write), string must be '\0' terminated, returns true on success
 
 // File access custom callbacks
 // WARNING: Callbacks setup is intended for advanced users
-void SetLoadFileDataCallback(LoadFileDataCallback callback);  // Set custom file binary data loader
-void SetSaveFileDataCallback(SaveFileDataCallback callback);  // Set custom file binary data saver
-void SetLoadFileTextCallback(LoadFileTextCallback callback);  // Set custom file text data loader
-void SetSaveFileTextCallback(SaveFileTextCallback callback);  // Set custom file text data saver
+void SetLoadFileDataCallback(void* callback);  // Set custom file binary data loader
+void SetSaveFileDataCallback(void* callback);  // Set custom file binary data saver
+void SetLoadFileTextCallback(void* callback);  // Set custom file text data loader
+void SetSaveFileTextCallback(void* callback);  // Set custom file text data saver
 
 int FileRename(const char *fileName, const char *fileRename); // Rename file (if exists)
 int FileRemove(const char *fileName);                         // Remove file (if exists)
@@ -311,44 +473,3 @@ unsigned int ComputeCRC32(unsigned char *data, int dataSize); // Compute CRC32 h
 unsigned int *ComputeMD5(unsigned char *data, int dataSize);  // Compute MD5 hash code, returns static int[4] (16 bytes)
 unsigned int *ComputeSHA1(unsigned char *data, int dataSize); // Compute SHA1 hash code, returns static int[5] (20 bytes)
 unsigned int *ComputeSHA256(unsigned char *data, int dataSize); // Compute SHA256 hash code, returns static int[8] (32 bytes)
-*/
-
-// Include for printf()
-#include <stdio.h>
-
-// Include for libnds
-#include <nds.h>
-
-int main(int argc, char **argv)
-{
-    // Initialize a basic text console
-    consoleDemoInit();
-
-    // Infinite loop
-    while (1)
-    {
-        // Synchronize loop with the new frame. The DS renders at 60 frames per
-        // second, so this loop will run 60 times per second.
-        swiWaitForVBlank();
-
-        // Refresh touchscreen and key state in libnds
-        scanKeys();
-
-        // Get list of all the keys that are currently pressed
-        unsigned int keys_held = keysHeld();
-
-        // Clear the text console
-        consoleClear();
-
-        // Print state of all the keys
-        printf("Keys: %X\n", keys_held);
-
-        // Print message if A is pressed
-        if (keys_held & KEY_A)
-            printf("A is pressed\n");
-
-        // Print message if up and B are pressed at the same time
-        if ((keys_held & KEY_B) && (keys_held & KEY_UP))
-            printf("Combination is pressed\n");
-    }
-}
