@@ -7,12 +7,10 @@ typedef struct Color {
     unsigned char b;
     unsigned char a;
 } Color;
-
 typedef struct
 {
     //todo fill
 }Image;
-
 typedef struct
 {
  //todo fill
@@ -24,6 +22,12 @@ typedef struct
     float frameTime;
     bool windowReady;
 }dsCore;
+
+typedef void (*TraceLogCallback)(int logLevel, const char *text, va_list args); // Logging: Redirect trace log messages
+typedef unsigned char *(*LoadFileDataCallback)(const char *fileName, int *dataSize); // FileIO: Load binary data
+typedef bool (*SaveFileDataCallback)(const char *fileName, const void *data, int dataSize); // FileIO: Save binary data
+typedef char *(*LoadFileTextCallback)(const char *fileName);                  // FileIO: Load text data
+typedef bool (*SaveFileTextCallback)(const char *fileName, const char *text); // FileIO: Save text data
 
 typedef enum {
     LOG_ALL = 0,
@@ -37,10 +41,16 @@ typedef enum {
 } TraceLogLevel;
 
 
+dsCore DS;
+static TraceLogCallback traceLog = NULL;            // TraceLog callback function pointer
+static LoadFileDataCallback loadFileData = NULL;    // LoadFileData callback function pointer
+static SaveFileDataCallback saveFileData = NULL;    // SaveFileText callback function pointer
+static LoadFileTextCallback loadFileText = NULL;    // LoadFileText callback function pointer
+static SaveFileTextCallback saveFileText = NULL;    // SaveFileText callback function pointer
 
-void TRACELOG(int logType, const char *text, ...)
+void TRACELOG(int logType, const char *text, ...) //todo replace all old printf ones with this
 {
-    
+
     va_list args;
     va_start(args, text);
     vprintf(text, args);
@@ -50,7 +60,6 @@ void TRACELOG(int logType, const char *text, ...)
 }
 
 
-dsCore DS;
 void InitWindow(int width, int height, const char* title)
 {
     videoSetMode(MODE_0_3D); //https://mtheall.com/banks.html#A=TS0&B=TS1&C=TS2&D=TS3&E=TPAL&F=TPAL4&G=TPAL5&H=SBG0&I=SOBJ
@@ -420,18 +429,58 @@ char *LoadFileText(const char *fileName)
     else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
 
     return text;
-}
+}// Load text data from file (read), returns a '\0' terminated string
+void UnloadFileText(char *text)
+{
+    free(text);
+}// Unload file text data allocated by LoadFileText()
+bool SaveFileText(const char *fileName, const char *text)
+{
+    bool result = false;
 
-// Load text data from file (read), returns a '\0' terminated string
-void UnloadFileText(char *text);                              // Unload file text data allocated by LoadFileText()
-bool SaveFileText(const char *fileName, const char *text);    // Save text data to file (write), string must be '\0' terminated, returns true on success
+    if (fileName != NULL)
+    {
+        //if (saveFileText) return saveFileText(fileName, text);
+
+        FILE *file = fopen(fileName, "wt");
+
+        if (file != NULL)
+        {
+            int count = fprintf(file, "%s", text);
+
+            if (count < 0) TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to write text file", fileName);
+            else TRACELOG(LOG_INFO, "FILEIO: [%s] Text file saved successfully", fileName);
+
+            int closed = fclose(file);
+            if (closed == 0) result = true;
+        }
+        else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to open text file", fileName);
+    }
+    else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
+
+    return result;
+}// Save text data to file (write), string must be '\0' terminated
 
 // File access custom callbacks
 // WARNING: Callbacks setup is intended for advanced users
-void SetLoadFileDataCallback(void* callback);  // Set custom file binary data loader
-void SetSaveFileDataCallback(void* callback);  // Set custom file binary data saver
-void SetLoadFileTextCallback(void* callback);  // Set custom file text data loader
-void SetSaveFileTextCallback(void* callback);  // Set custom file text data saver
+
+// Set custom file binary data loader
+void SetLoadFileDataCallback(LoadFileDataCallback callback)
+{
+    loadFileData = callback;
+}
+void SetSaveFileDataCallback(SaveFileDataCallback callback)
+{
+    saveFileData = callback;
+}// Set custom file binary data saver
+void SetLoadFileTextCallback(LoadFileTextCallback callback)
+{
+    loadFileText = callback;
+}// Set custom file text data loader
+void SetSaveFileTextCallback(SaveFileTextCallback callback)
+{
+    saveFileText = callback;
+}// Set custom file text data saver
 
 int FileRename(const char *fileName, const char *fileRename); // Rename file (if exists)
 int FileRemove(const char *fileName);                         // Remove file (if exists)
