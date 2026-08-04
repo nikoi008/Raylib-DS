@@ -178,7 +178,9 @@ void RlSwapScreens()
 
 void ClearBackground(Color color)
 {
-    BG_PALETTE[0] = RGB15(color.r,color.g,color.b);
+    glClearColor(color.r >> 3, color.g >> 3, color.b >> 3, 31);
+    BG_PALETTE[0] = RGB15(color.r >> 3, color.g >> 3, color.b >> 3);;
+    BG_PALETTE_SUB[0] = RGB15(color.r >> 3, color.g >> 3, color.b >> 3);
     //consoleClear(); todo se if this stays?
 }
 
