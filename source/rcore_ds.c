@@ -7,29 +7,7 @@
 #define FILE_FILTER_TAG_ALL        "*.*"
 #define FILE_FILTER_TAG_DIR_ONLY   "DIRS*"
 #define FILE_FILTER_TAG_FILE_ONLY  "FILES*"
-typedef struct Color {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char a;
-} Color;
 
-typedef struct
-{
-    bool pollEvents;
-    u32 lastTicks;
-    float frameTime;
-    bool windowReady;
-    int currentMainScreen;
-    u16 exitKey;
-    touchPosition touchpos;
-}dsCore;
-
-typedef struct
-{
-    int x;
-    int y;
-}Vector2;
 typedef void (*TraceLogCallback)(int logLevel, const char *text, va_list args); // Logging: Redirect trace log messages
 typedef unsigned char *(*LoadFileDataCallback)(const char *fileName, int *dataSize); // FileIO: Load binary data
 typedef bool (*SaveFileDataCallback)(const char *fileName, const void *data, int dataSize); // FileIO: Save binary data

@@ -22,5 +22,53 @@
    "source/main.c"
   ],
   "file": "source/main.c"
+ },
+ {
+  "directory": "C:\\Users\\Nmsou\\documents\\github\\raylib-ds",
+  "arguments": [
+   "C:/msys64/opt/wonderful/toolchain/gcc-arm-none-eabi/bin/arm-none-eabi-gcc",
+   "-Wall",
+   "-IC:/msys64/opt/wonderful/thirdparty/blocksds/core/libs/libnds/include",
+   "-D__NDS__",
+   "-D__BLOCKSDS__",
+   "-DARM9",
+   "-mthumb",
+   "-mcpu=arm946e-s+nofp",
+   "-O2",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-specs=C:/msys64/opt/wonderful/thirdparty/blocksds/core/sys/crts/ds_arm9.specs",
+   "-MMD",
+   "-MP",
+   "-c",
+   "-o",
+   "build/template/source/rcore_ds.c.o",
+   "source/rcore_ds.c"
+  ],
+  "file": "source/rcore_ds.c"
+ },
+ {
+  "directory": "C:\\Users\\Nmsou\\documents\\github\\raylib-ds",
+  "arguments": [
+   "C:/msys64/opt/wonderful/toolchain/gcc-arm-none-eabi/bin/arm-none-eabi-gcc",
+   "-Wall",
+   "-IC:/msys64/opt/wonderful/thirdparty/blocksds/core/libs/libnds/include",
+   "-D__NDS__",
+   "-D__BLOCKSDS__",
+   "-DARM9",
+   "-mthumb",
+   "-mcpu=arm946e-s+nofp",
+   "-O2",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-specs=C:/msys64/opt/wonderful/thirdparty/blocksds/core/sys/crts/ds_arm9.specs",
+   "-MMD",
+   "-MP",
+   "-c",
+   "-o",
+   "build/template/source/rshapes_ds.c.o",
+   "source/rshapes_ds.c"
+  ],
+  "file": "source/rshapes_ds.c"
  }
-]
+]
