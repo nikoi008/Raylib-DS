@@ -1,26 +1,27 @@
 #include <gl2d.h>
 #include <nds.h>
 #include <stdarg.h>
+#include "rcore_ds.h"
+#include <fat.h>
+#define MAX_FILEPATH_LENGTH      256
+#define FILE_FILTER_TAG_ALL        "*.*"
+#define FILE_FILTER_TAG_DIR_ONLY   "DIRS*"
+#define FILE_FILTER_TAG_FILE_ONLY  "FILES*"
 typedef struct Color {
     unsigned char r;
     unsigned char g;
     unsigned char b;
     unsigned char a;
 } Color;
-typedef struct
-{
-    //todo fill
-}Image;
-typedef struct
-{
- //todo fill
-}FilePathList;
+
 typedef struct
 {
     bool pollEvents;
     u32 lastTicks;
     float frameTime;
     bool windowReady;
+    int currentMainScreen;
+    u16 exitKey;
 }dsCore;
 
 typedef void (*TraceLogCallback)(int logLevel, const char *text, va_list args); // Logging: Redirect trace log messages
@@ -58,7 +59,6 @@ void TRACELOG(int logType, const char *text, ...) //todo replace all old printf 
 
     printf("\n");
 }
-
 void SetTraceLogCallback(TraceLogCallback callback)
 {
     traceLog = callback;
@@ -85,9 +85,15 @@ void InitWindow(int width, int height, const char* title)
     cpuStartTiming(0);
     DS.lastTicks = cpuGetTiming();
     consoleDemoInit();
+    if (!fatInitDefault())
+    {
+        TRACELOG(LOG_ALL,"FAT: SD CARD NOT LOADED");
+    }
     DS.lastTicks = 0;
 
     DS.windowReady = true;
+
+    DS.currentMainScreen = 0;
 }
 
 void CloseWindow(void)
@@ -98,7 +104,7 @@ void CloseWindow(void)
 bool WindowShouldClose(void)
 {
     //?
-
+    return false;
 }
 
 // here for compatibility -- best to not use
@@ -109,19 +115,36 @@ bool IsWindowMinimized(void){ return false; }                           // Check
 bool IsWindowMaximized(void) { return true; }                               // Check if window is currently maximized
 bool IsWindowFocused(void) { return true; }                                // Check if window is currently focused
 bool IsWindowResized(void) { return false; }
-bool IsWindowState(unsigned int flag);//check flags
-void SetWindowState(unsigned int flags);
-void ClearWindowState(unsigned int flags);
-void ToggleFullscreen(void);                                // Toggle window state: fullscreen/windowed, resizes monitor to match window resolution
-void ToggleBorderlessWindowed(void);                        // Toggle window state: borderless windowed, resizes window to match monitor resolution
-void MaximizeWindow(void);                                  // Set window state: maximized, if resizable
-void MinimizeWindow(void);                                  // Set window state: minimized, if resizable
-void RestoreWindow(void);                                   // Restore window from being minimized/maximized
-void SetWindowIcon(Image image);                            // Set icon for window (single image, RGBA 32bit)
-void SetWindowIcons(Image *images, int count);              // Set icon for window (multiple images, RGBA 32bit)
-void SetWindowTitle(const char *title);                     // Set title for window
-void SetWindowPosition(int x, int y);                       // Set window position on screen
-void SetWindowMonitor(int monitor);                         // Set monitor for the current window
+bool IsWindowState(unsigned int flag){return 1;};//check flags
+void SetWindowState(unsigned int flags){};
+void ClearWindowState(unsigned int flags){};
+void ToggleFullscreen(void){};                                // Toggle window state: fullscreen/windowed, resizes monitor to match window resolution
+void ToggleBorderlessWindowed(void){};                        // Toggle window state: borderless windowed, resizes window to match monitor resolution
+void MaximizeWindow(void){};                                  // Set window state: maximized, if resizable
+void MinimizeWindow(void){};                                  // Set window state: minimized, if resizable
+void RestoreWindow(void){};                                   // Restore window from being minimized/maximized
+void SetWindowIcon(Image image){};                            // Set icon for window (single image, RGBA 32bit)
+void SetWindowIcons(Image *images, int count){};              // Set icon for window (multiple images, RGBA 32bit)
+void SetWindowTitle(const char *title){};                     // Set title for window
+void SetWindowPosition(int x, int y){};                       // Set window position on screen
+void SetWindowMonitor(int monitor)
+{
+    if (DS.currentMainScreen == 0 && monitor == 1)
+    {
+        lcdSwap();
+        DS.currentMainScreen = 1;
+    }
+    else if (DS.currentMainScreen == 1 && monitor == 0)
+    {
+        lcdSwap();
+        DS.currentMainScreen = 0;
+    }
+    else
+    {
+        TRACELOG(LOG_DEBUG,"SCREEN: INVALID MONITOR");
+    }
+
+};                         // Set monitor for the current window
 void SetWindowMinSize(int width, int height);               // Set window minimum dimensions (for FLAG_WINDOW_RESIZABLE)
 void SetWindowMaxSize(int width, int height);               // Set window maximum dimensions (for FLAG_WINDOW_RESIZABLE)
 void SetWindowSize(int width, int height);                  // Set window dimensions
@@ -155,6 +178,7 @@ void DisableEventWaiting(void)
 }
 
 //cursor ones for compatibility?? best to just not compile? maybe just make it act as touchscreen (lmb = left half, rmb = right half)?
+//kinda doable? keep sprite here, load whn cursor is enabled?
 void ShowCursor(void);                                      // Shows cursor
 void HideCursor(void);                                      // Hides cursor
 bool IsCursorHidden(void);                                  // Check if cursor is not visible
@@ -165,6 +189,7 @@ bool IsCursorOnScreen(void);
 void RlSwapScreens()
 {
     lcdSwap();
+    DS.currentMainScreen = !DS.currentMainScreen;
 }
 
 void ClearBackground(Color color)
@@ -175,6 +200,7 @@ void ClearBackground(Color color)
 
 void BeginDrawing()
 {
+    scanKeys();
     swiWaitForVBlank();
     glBegin2D();
 }
@@ -203,6 +229,16 @@ float GetTime()
     u32  ticks = cpuGetTiming();
     return ticks / BUS_CLOCK;
 }
+
+int GetFPS()
+{
+    return 60; //todo implement
+}
+
+void SwapScreenBuffer(void);                      // Swap back buffer with front buffer (screen drawing)
+void PollInputEvents(void);                       // Register all input events
+void WaitTime(double seconds);                     //todo implemement
+
 
 void SetRandomSeed(unsigned int seed)
 {
@@ -998,7 +1034,7 @@ void UnloadDirectoryFiles(FilePathList files)
     }
 }               // Unload filepaths
 bool IsFileDropped(void){ return true; }//todo implement later};                                     // Check if a file has been dropped into window
-FilePathList LoadDroppedFiles(void){ return 0; }//todo implement later};                          // Load dropped filepaths
+FilePathList LoadDroppedFiles(void){ return (FilePathList){0,0}; }//todo implement later};                          // Load dropped filepaths
 void UnloadDroppedFiles(FilePathList files){return;};  //todo implement later                 // Unload dropped filepaths
 unsigned int GetDirectoryFileCount(const char *dirPath)
 {
@@ -1576,3 +1612,49 @@ unsigned int *ComputeSHA256(const unsigned char *data, int dataSize)
 
     return hash;
 }
+
+bool IsKeyPressed(int key)
+{
+    return (keysDown() & key) != 0;
+}
+bool IsKeyPressedRepeat(int key)
+{
+    return (keysDownRepeat() & key) != 0;
+}
+bool IsKeyDown(int key)
+{
+    return (keysHeld() & key) != 0;
+}
+bool IsKeyReleased(int key)
+{
+    return (keysUp() & key) != 0;
+}
+bool IsKeyUp(int key)
+{
+    return (keysHeld() & key) == 0;
+}
+int GetKeyPressed(void)
+{
+    u16 kd = keysDown();
+    return kd;
+};                                // Get key pressed (keycode), call it multiple times for keys queued, returns 0 when the queue is empty
+int GetCharPressed(void);                               // Get char pressed (unicode), call it multiple times for chars queued, returns 0 when the queue is empty
+const char *GetKeyName(int key){ return " ";};                        // Get name of a QWERTY key on the current keyboard layout (eg returns string 'q' for KEY_A on an AZERTY keyboard)
+void SetExitKey(int key)
+{
+    DS.exitKey = key;
+};
+
+bool IsGamepadAvailable(int gamepad){return true;};                   // Check if a gamepad is available
+const char *GetGamepadName(int gamepad){return "Nintendo DS gamepad";};                // Get gamepad internal name id
+bool IsGamepadButtonPressed(int gamepad, int button){return IsKeyPressed(button);};   // Check if a gamepad button has been pressed once
+bool IsGamepadButtonDown(int gamepad, int button){return IsKeyDown(button);};      // Check if a gamepad button is being pressed
+bool IsGamepadButtonReleased(int gamepad, int button){return IsKeyReleased(button);};  // Check if a gamepad button has been released once
+bool IsGamepadButtonUp(int gamepad, int button){return IsKeyUp(button);}        // Check if a gamepad button is NOT being pressed
+int GetGamepadButtonPressed(void){return GetKeyPressed();};                      // Get the last gamepad button pressed
+int GetGamepadAxisCount(int gamepad){return 0;};                   // Get axis count for a gamepad
+float GetGamepadAxisMovement(int gamepad, int axis){return 0.0f;};    // Get movement value for a gamepad axis
+int SetGamepadMappings(const char *mappings){return 0;};           // Set internal gamepad mappings (SDL_GameControllerDB)
+void SetGamepadVibration(int gamepad, float leftMotor, float rightMotor, float duration){return;}; // Set gamepad vibration for both motors (duration in seconds)
+
+
