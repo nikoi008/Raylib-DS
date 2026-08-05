@@ -14,17 +14,6 @@ typedef bool (*SaveFileDataCallback)(const char *fileName, const void *data, int
 typedef char *(*LoadFileTextCallback)(const char *fileName);                  // FileIO: Load text data
 typedef bool (*SaveFileTextCallback)(const char *fileName, const char *text); // FileIO: Save text data
 
-typedef enum {
-    LOG_ALL = 0,
-    LOG_TRACE,
-    LOG_DEBUG,
-    LOG_INFO,
-    LOG_WARNING,
-    LOG_ERROR,
-    LOG_FATAL,
-    LOG_NONE
-} TraceLogLevel;
-
 
 dsCore DS;
 static TraceLogCallback traceLog = NULL;            // TraceLog callback function pointer
@@ -1676,7 +1665,7 @@ Vector2 GetMouseWheelMoveV(void);                       // Get mouse wheel movem
 void SetMouseCursor(int cursor);                        // Set mouse cursor
 
 
-//https://github.com/blocksds/sdk/blob/master/examples/input/gesture_recognition/source/main.cpp ??todo compare
+//https://github.com/blocksds/sdk/blob/master/examples/input/gesture_recognition/source/main.cpp ??ftodo compare
 void SetGesturesEnabled(unsigned int flags);            // Enable a set of gestures using flags
 bool IsGestureDetected(unsigned int gesture);           // Check if a gesture have been detected
 int GetGestureDetected(void);                           // Get latest detected gesture
