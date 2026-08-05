@@ -222,9 +222,24 @@ int GetFPS()
     return 60; //todo implement
 }
 
-void SwapScreenBuffer(void);                      // Swap back buffer with front buffer (screen drawing)
-void PollInputEvents(void);                       // Register all input events
-void WaitTime(double seconds);                     //todo implemement
+void SwapScreenBuffer(void)
+{
+    swiWaitForVBlank();
+};                      // Swap back buffer with front buffer (screen drawing)
+void PollInputEvents(void)
+{
+    scanKeys();
+    touchRead(&DS.touchpos);
+}                       // Register all input events
+void WaitTime(double seconds)
+{
+
+    signed long int cycles = (s32)(seconds * 67130000.0);
+    if (cycles > 0)
+    {
+        swiDelay(cycles);
+    }
+}
 
 
 void SetRandomSeed(unsigned int seed)
@@ -301,7 +316,7 @@ unsigned char *LoadFileData(const char *fileName, int *dataSize)
                     // dataSize is unified along raylib as a 'int' type, so, for file-sizes >INT_MAX (2147483647 bytes) there is a limitation
                     if (count > 2147483647)
                     {
-                        printf("FILEIO: [%s] File is bigger than 2147483647 bytes, avoid using LoadFileData()", fileName);
+                        TRACELOG(LOG_ALL,"FILEIO: [%s] File is bigger than 2147483647 bytes, avoid using LoadFileData()", fileName);
 
                         free(data);
                         data = NULL;

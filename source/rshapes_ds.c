@@ -178,37 +178,34 @@ void DrawCircleSectorLines(Vector2 center, float radius, float startAngle, float
 
 void DrawEllipseV(Vector2 center, float radiusH, float radiusV, Color color)
 {
-/*
-    s32 radiusHF32 = floattof32(radiusH);
-    s32 radiusVF32 = floattof32(radiusV);
-    int cx = (int)center.x;
-    int cy = (int)center.y;
-
-    u16 col = RGB15(color.r >> 3, color.g >> 3, color.b >> 3);
-
-    s16 prevAngle = 0;
-    int prevX = cx + f32toint(mulf32(radiusHF32, cosLerp(prevAngle)));
-    int prevY = cy + f32toint(mulf32(radiusVF32, sinLerp(prevAngle)));
-
-    for (int i = 1; i <= 36; i++)
-    {
-        s16 angle = (s16)((i * DEGREES_IN_CIRCLE) / 36);
-
-        int x = cx + f32toint(mulf32(radiusHF32, cosLerp(angle)));
-        int y = cy + f32toint(mulf32(radiusVF32, sinLerp(angle)));
-
-        glTriangleFilled(cx, cy, prevX, prevY, x, y, col);
-
-        prevX = x;
-        prevY = y;*/ //todo dont vibecode
 
 }
+
+
+
 void DrawEllipse(int centerX,int centerY, float radiusH, float radiusV, Color color)
 {
     DrawEllipseV((Vector2){centerX,centerY},radiusH,radiusV,color);
 };
-void DrawEllipseLines(int centerX, int centerY, float radiusH, float radiusV, Color color);
-void DrawEllipseLinesV(Vector2 center, float radiusH, float radiusV, Color color);
+void DrawEllipseLines(int centerX, int centerY, float radiusH, float radiusV, Color color)
+{
+    DrawEllipseV((Vector2){centerX,centerY},radiusH,radiusV,color);
+};
+void DrawEllipseLinesV(Vector2 center, float radiusH, float radiusV, Color color)
+{
+    s32 radiusHF32 = floattof32(radiusH);
+    s32 radiusVF32 = floattof32(radiusV);
+
+    for (int i = 0; i < 360; i += 10)
+    {
+        int x1 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i + 10)),radiusHF32));
+        int x2 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i)),radiusHF32));
+        int y1 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i + 10)),radiusVF32));
+        int y2 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i)),radiusVF32));
+
+        glLine(x1,y1,x2,y2,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+    }
+};
 
 
 
