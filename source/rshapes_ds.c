@@ -178,11 +178,20 @@ void DrawCircleSectorLines(Vector2 center, float radius, float startAngle, float
 
 void DrawEllipseV(Vector2 center, float radiusH, float radiusV, Color color)
 {
+    s32 radiusHF32 = floattof32(radiusH);
+    s32 radiusVF32 = floattof32(radiusV);
 
+
+    for (int i = 0; i < 360; i += 10)
+    {
+        int x1 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i + 10)),radiusHF32));
+        int x2 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i)),radiusHF32));
+        int y1 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i + 10)),radiusVF32));
+        int y2 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i)),radiusVF32));
+
+        glTriangleFilled(center.x,center.y,x1,y1,x2,y2,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+    }
 }
-
-
-
 void DrawEllipse(int centerX,int centerY, float radiusH, float radiusV, Color color)
 {
     DrawEllipseV((Vector2){centerX,centerY},radiusH,radiusV,color);
@@ -311,26 +320,20 @@ void DrawTriangleStrip(const Vector2 *points, int pointCount, Color color)
 void DrawPoly(Vector2 center, int sides, float radius, float rotation, Color color)
 {
     if (sides < 3) sides = 3;
-
     s32 radiusF32 = floattof32(radius);
-    int cx = (int)center.x;
-    int cy = (int)center.y;
-
     s16 centralAngle = (s16)(((int)rotation * DEGREES_IN_CIRCLE) / 360);
     s16 angleStep = (s16)(DEGREES_IN_CIRCLE / sides);
 
-
     for (int i = 0; i < sides; i++)
     {
-        s16 a1 = centralAngle + (i * angleStep);
-        s16 a2 = a1 + angleStep;
+        int x1 = (int)(center.x) + f32toint(mulf32(cosLerp(centralAngle),radiusF32));
+        int x2 = (int )(center.x) + f32toint(mulf32(cosLerp(centralAngle + angleStep),radiusF32));
 
-        int x1 = cx + f32toint(mulf32(radiusF32, cosLerp(a1)));
-        int y1 = cy + f32toint(mulf32(radiusF32, sinLerp(a1)));
-        int x2 = cx + f32toint(mulf32(radiusF32, cosLerp(a2)));
-        int y2 = cy + f32toint(mulf32(radiusF32, sinLerp(a2)));
+        int y1 = (int)(center.y) + f32toint(mulf32(sinLerp(centralAngle),radiusF32));
+        int y2 = (int)(center.y) + f32toint(mulf32(sinLerp(centralAngle + angleStep),radiusF32));
+        glTriangleFilled(center.x,center.y,x1,y1,x2,y2,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+        centralAngle += angleStep;
 
-        glTriangleFilled(cx, cy, x1, y1, x2, y2, RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
     }
 }
 
