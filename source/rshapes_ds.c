@@ -108,30 +108,60 @@ void DrawLineDashed(Vector2 startPos, Vector2 endPos, int dashSize, int spaceSiz
 
 void DrawCircle(int centerX, int centerY, float radius, Color color)
 {
-    //todo dont vibecode
-    s32 radiusF32 = floattof32(radius);
-    s32 radiusSq = mulf32(radiusF32, radiusF32);
-    int r = f32toint(radiusF32);
+    DrawCircleSector((Vector2){ (float)centerX, (float)centerY }, radius, 0, 360, 36, color);
 
-    u16 col = RGB15(color.r >> 3, color.g >> 3, color.b >> 3);
-
-    for (int dy = -r; dy <= r; dy++)
-    {
-        s32 dyF = inttof32(dy);
-        s32 dySq = mulf32(dyF, dyF);
-        s32 halfWSq = radiusSq - dySq;
-        if (halfWSq < 0) halfWSq = 0;
-
-        int halfW = f32toint(sqrtf32(halfWSq));
-
-        int y = centerY + dy;
-        glBoxFilled(centerX - halfW, y, centerX + halfW, y + 1, col);
-    }
 }
 void DrawCircleV(Vector2 center, float radius, Color color)
 {
     DrawCircle(center.x,center.y,radius,color);
 };
+
+
+void DrawCircleSector(Vector2 center, float radius, float startAngle, float endAngle, int segments, Color color)
+{
+    if (startAngle == endAngle) return;
+    if (radius <= 0.0f) radius = 0.1f;  // Avoid div by zero
+
+    // Function expects (endAngle > startAngle)
+    if (endAngle < startAngle)
+    {
+        // Swap values
+        float tmp = startAngle;
+        startAngle = endAngle;
+        endAngle = tmp;
+    }
+
+    //int minSegments = (int)ceilf((endAngle - startAngle)/90);
+
+    //f (segments < minSegments)
+    //{
+    //    // Calculate the maximum angle between segments based on the error rate (usually 0.5f)
+    //    float th = acosf(2*powf(1 - SMOOTH_CIRCLE_ERROR_RATE/radius, 2) - 1);
+    //    segments = (int)ceilf((endAngle - startAngle)*(2*PI/th)/360.0f);
+
+    //if (segments <= 0) segments = minSegments;
+    //}
+
+    float stepLength = (endAngle - startAngle)/(float)segments;
+    float angle = startAngle;
+    s32 radiusF32 = floattof32(radius);
+
+        for (int i = 0; i < segments; i++)
+        {
+            //rlColor4ub(color.r, color.g, color.b, color.a);
+
+            //rlVertex2f(center.x, center.y);
+            //rlVertex2f(center.x + cosf(DEG2RAD*(angle + stepLength))*radius, center.y + sinf(DEG2RAD*(angle + stepLength))*radius);
+            int x1 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(angle + stepLength)),radiusF32));
+            int y1 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(angle + stepLength)),radiusF32));
+            //rlVertex2f(center.x + cosf(DEG2RAD*angle)*radius, center.y + sinf(DEG2RAD*angle)*radius);
+            int x2  = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(angle)),radiusF32));
+            int y2 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(angle)),radiusF32));
+
+            glTriangleFilled((int)center.x,(int)center.y,x1,y1,x2,y2,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+            angle += stepLength;
+        }
+}
 void DrawCircleLines(int centerX, int centerY, float radius, Color color)
 {
     int x = 0;
