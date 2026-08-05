@@ -4,7 +4,7 @@
 #include <nds.h>
 #include "rshapes_ds.h"
 #include <math.h>
-
+#include <float.h>
 
 
 

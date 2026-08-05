@@ -22,6 +22,19 @@ typedef struct Color {
     unsigned char a;
 } Color;
 
+typedef enum {
+    LOG_ALL = 0,
+    LOG_TRACE,
+    LOG_DEBUG,
+    LOG_INFO,
+    LOG_WARNING,
+    LOG_ERROR,
+    LOG_FATAL,
+    LOG_NONE
+} TraceLogLevel;
+
+
+
 typedef struct Image {
     void *data;             // Image raw data
     int width;              // Image base width
