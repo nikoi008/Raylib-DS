@@ -17,6 +17,20 @@ typedef struct
 {
     int a;
 }Texture2D;
+
+typedef struct
+{
+    float x;
+    float y;
+}Vector2;
+
+typedef struct Color {
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+} Color;
+
 void DrawPixel(int posX, int posY, Color color);                                                   // Draw a pixel using geometry [Can be slow, use with care]
     void DrawPixelV(Vector2 position, Color color);                                                    // Draw a pixel using geometry (Vector version) [Can be slow, use with care]
     void DrawLine(int startPosX, int startPosY, int endPosX, int endPosY, Color color);                // Draw a line

@@ -3,7 +3,8 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <nds.h>
-
+#include "rshapes_ds.h"
+#include <gl2d.h>
 typedef void (*TraceLogCallback)(int logLevel, const char *text, va_list args); // Logging: Redirect trace log messages
 typedef unsigned char *(*LoadFileDataCallback)(const char *fileName, int *dataSize); // FileIO: Load binary data
 typedef bool (*SaveFileDataCallback)(const char *fileName, const void *data, int dataSize); // FileIO: Save binary data
@@ -15,12 +16,7 @@ typedef struct FilePathList {
     char **paths;                   // Filepaths entries
 } FilePathList;
 
-typedef struct Color {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char a;
-} Color;
+
 
 typedef enum {
     LOG_ALL = 0,
@@ -34,14 +30,23 @@ typedef enum {
 } TraceLogLevel;
 
 
+typedef struct
+{
+    int id;
+    u16 *pal;
+    u8* gfx;
+    Vector2 size;
+    glImage image[1];
 
+}Image;
+/*
 typedef struct Image {
     void *data;             // Image raw data
     int width;              // Image base width
     int height;             // Image base height
     int mipmaps;            // Mipmap levels, 1 by default
     int format;             // Data format (PixelFormat type)
-} Image;
+} Image;*/
 
 typedef struct
 {
@@ -54,11 +59,7 @@ typedef struct
     touchPosition touchpos;
 }dsCore;
 
-typedef struct
-{
-    float x;
-    float y;
-}Vector2;
+
 
 typedef struct
 {
