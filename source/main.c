@@ -114,7 +114,7 @@ Image LoadImage(char* loc)
 
         for (int i = 0; i < palTotal; i++ )
         {
-            //printf("%x\n", pal[i]);
+            printf("%x\n", pal[i]);
         }
         int gfxPos = 0;
         for (int i = idx; i < dataSize;i+= 3)
@@ -137,10 +137,6 @@ Image LoadImage(char* loc)
             }
         }
 
-
-        glGenTextures(1, &textureID);
-        glBindTexture(0, textureID);
-        glColorTableNtr(palTotal, pal);
 
         //free(pal);
         UnloadFileData(fileData);
@@ -235,7 +231,7 @@ Image LoadImageAnim(const char* filename, int frames)
 
         for (int i = 0; i < palTotal; i++ )
         {
-            //printf("%x\n", pal[i]);
+            printf("%x\n", pal[i]);
         }
         int gfxPos = 0;
         for (int i = idx; i < dataSize;i+= 3)
@@ -257,7 +253,10 @@ Image LoadImageAnim(const char* filename, int frames)
                 }
             }
         }
-
+        for (int i = 0; i < gfxPos; i++)
+        {
+            printf("%x",gfx[i]);
+        }
         glImage* images = malloc(sizeof(glImage) * frames);
         uint16_t *texcoords = malloc(sizeof(uint16_t) * 4 * frames);
 
@@ -266,14 +265,11 @@ Image LoadImageAnim(const char* filename, int frames)
             texcoords[i * 4 + 0] = 0;
             texcoords[i * 4 + 1] = i * (size.y / frames);
             texcoords[i * 4 + 2] = size.x;
-            texcoords[i *4 + 3] = (size.y / frames) * (i + 1);
+            texcoords[i *4 + 3] = (size.y / frames);
         }
 
-        glGenTextures(1, &textureID);
-        glBindTexture(0, textureID);
-        glColorTableNtr(palTotal, pal);
 
-        textureID =glLoadSpriteSet(images,frames,texcoords,GL_RGB256,size.x,size.y,TEXGEN_TEXCOORD,palTotal,pal,gfx);
+        textureID =glLoadSpriteSet(images,frames,texcoords,GL_RGB256,size.x,size.y,TEXGEN_TEXCOORD,256,pal,gfx);
 
         UnloadFileData(fileData);
         return (Image){1,pal,gfx,size,images};
@@ -281,7 +277,6 @@ Image LoadImageAnim(const char* filename, int frames)
     else
     {
         TRACELOG(LOG_ALL, "failed to load");
-        //return (Image){NULL};
     }
 }
 
@@ -380,15 +375,12 @@ Image LoadImageFromMemory(const char *fileType, const unsigned char *fileData, i
         }
 
 
-        glGenTextures(1, &textureID);
-        glBindTexture(0, textureID);
-        glColorTableNtr(palTotal, pal);
 
         //free(pal);
         UnloadFileData(fileData);
         uint16_t texcoords[4] = {0, 0, (int)size.x,(int)size.y};
         //glImage image[1];
-        // glLoadSpriteSet(image,1,texcoords,GL_RGB256,size.x, size.y,TEXGEN_TEXCOORD,256,pal,gfx); pushes to vram
+        // glLoadSpriteSet(image,1,texcoords,GL_RGB256,size.x, size.y,TEXGEN_TEXCOORD,palTotal,pal,gfx); pushes to vram
         free(pal);
         free(gfx);
         return (Image){1,pal,gfx,size,image};
@@ -424,7 +416,8 @@ int main(void)
 {
     InitWindow(256, 192, "");
     Image  sprite = LoadImageAnim("ass.ppm",2);
-    Image sprite2 = LoadImage("e.ppm");
+    Image sprite2 = LoadImage("e(1).ppm");
+
     while (!WindowShouldClose())
     {
         static int x = 0;
@@ -437,9 +430,9 @@ int main(void)
         if (IsKeyDown(KEY_UP)){y-= 2;}
         ClearBackground((Color){15, 15, 25, 255});
         glEnable(GL_TEXTURE_2D);
-        glSprite(x, y, GL_FLIP_NONE, &sprite.image[0]);
         glSprite(50,50,GL_FLIP_NONE,&sprite.image[1]);
         glSprite(150, 50, GL_FLIP_NONE, &sprite2.image[0]);
+        glSprite(x, y, GL_FLIP_NONE, &sprite.image[0]);
 
         EndDrawing();
     }
