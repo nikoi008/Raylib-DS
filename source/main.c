@@ -258,21 +258,27 @@ Image LoadImageAnim(const char* filename, int frames)
             printf("%x",gfx[i]);
         }
         glImage* images = malloc(sizeof(glImage) * frames);
-        uint16_t *texcoords = malloc(sizeof(uint16_t) * 4 * frames);
+        
+        glImage* fImages = malloc(sizeof(glImage) * frames);
 
-        for (int i = 0 ; i < frames; i++)
+
+        uint16_t texcoords[4] = {0, 0, size.x, size.y / frames};
+        for (int i = 0; i < frames; i++)
         {
-            texcoords[i * 4 + 0] = 0;
-            texcoords[i * 4 + 1] = i * (size.y / frames);
-            texcoords[i * 4 + 2] = size.x;
-            texcoords[i *4 + 3] = (size.y / frames);
+            u8* minigfx = malloc(size.x * (size.y / frames));
+            memcpy(minigfx, gfx + (int)(size.x * (size.y / frames) * i), size.x * (size.y / frames));
+
+
+            textureID = glLoadSpriteSet(&fImages[i], 1, texcoords, GL_RGB256, size.x, size.y / frames, TEXGEN_TEXCOORD, 256, pal, minigfx);
+
+            free(minigfx);
         }
 
+       // textureID =glLoadSpriteSet(images,frames,texcoords,GL_RGB256,size.x,size.y,TEXGEN_TEXCOORD,256,pal,gfx);
 
-        textureID =glLoadSpriteSet(images,frames,texcoords,GL_RGB256,size.x,size.y,TEXGEN_TEXCOORD,256,pal,gfx);
-
-        UnloadFileData(fileData);
-        return (Image){1,pal,gfx,size,images};
+        UnloadFileData(fileData);x`x
+        free(gfx);
+        return (Image){1,pal,gfx,size,fImages};
     }
     else
     {
@@ -415,9 +421,9 @@ bool ExportImageAsCode(Image image, const char* filename)
 int main(void)
 {
     InitWindow(256, 192, "");
-    Image  sprite = LoadImageAnim("ass.ppm",2);
+    Image  sprite = LoadImageAnim("player.ppm",10);
     Image sprite2 = LoadImage("e(1).ppm");
-
+    int frame = 0;
     while (!WindowShouldClose())
     {
         static int x = 0;
@@ -429,10 +435,11 @@ int main(void)
         if (IsKeyDown(KEY_DOWN)){ y+= 2;}
         if (IsKeyDown(KEY_UP)){y-= 2;}
         ClearBackground((Color){15, 15, 25, 255});
+        if (IsKeyReleased(KEY_A)){frame = (frame + 1) % 10;}
         glEnable(GL_TEXTURE_2D);
-        glSprite(50,50,GL_FLIP_NONE,&sprite.image[1]);
+        glSprite(50,50,GL_FLIP_NONE,&sprite.image[(frame + 1) % 10]);
         glSprite(150, 50, GL_FLIP_NONE, &sprite2.image[0]);
-        glSprite(x, y, GL_FLIP_NONE, &sprite.image[0]);
+        glSprite(x, y, GL_FLIP_NONE, &sprite.image[frame]);
 
         EndDrawing();
     }

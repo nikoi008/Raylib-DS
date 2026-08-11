@@ -36,7 +36,7 @@ typedef struct
     u16 *pal;
     u8* gfx;
     Vector2 size;
-    glImage image[1];
+    glImage* image;
 
 }Image;
 /*
