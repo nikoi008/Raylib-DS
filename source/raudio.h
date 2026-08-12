@@ -23,8 +23,8 @@ float GetMasterVolume(void);                                    // Get master vo
     void UnloadWave(Wave wave);                                     // Unload wave data
     void UnloadSound(Sound sound);                                  // Unload sound
     void UnloadSoundAlias(Sound alias);                             // Unload a sound alias (does not deallocate sample data)
-    bool ExportWave(Wave wave, const char *fileName);               // Export wave data to file, returns true on success
-    bool ExportWaveAsCode(Wave wave, const char *fileName);         // Export wave sample data to code (.h), returns true on success
+    bool ExportWave(Wave wave, const char *fileName);               // Export wave data to file, returns true on success todo implement
+    bool ExportWaveAsCode(Wave wave, const char *fileName);         // Export wave sample data to code (.h), returns true on success todod implement
 
     // Wave/Sound management functions
     void PlaySound(Sound sound);                                    // Play a sound

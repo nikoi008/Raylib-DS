@@ -52,8 +52,10 @@ bool isWaveValid(Wave wave)
 typedef struct Sound
 {
     Wave wave;
-    int pitch; int etc; //todo add these when neccessary
+    int pitch;
+    int pan; //todo free
     bool alias; //todo make sure memory management is handled properly for aliases
+    bool playing; //todo dont forget to also free
 }Sound;
 
 
@@ -122,10 +124,63 @@ void UnloadSoundAlias(Sound* alias)
     if (alias == NULL) return;
 
     alias->pitch = 0;
-    alias->etc = 0;
+    alias->pan = 0;
     alias->alias = false;
     alias->wave.waveData = NULL;
     alias->wave.waveSize = 0;
+
+}
+
+void PlaySound(Sound sound)
+{
+    AS_MP3DirectPlay(sound.wave.waveData,sound.wave.waveSize);
+    sound.playing = true;
+}
+
+void StopSound(Sound sound)
+{
+
+}
+
+void PauseSound(Sound sound)
+{
+    if (sound.playing == true)
+    {
+        AS_MP3Pause();
+        sound.playing = false;
+    }
+}
+
+void ResumeSound(Sound sound)
+{
+    if (sound.playing == false)
+    {
+        AS_MP3Unpause();
+        sound.playing = true;
+    }
+}
+
+bool IsSoundPlaying(Sound sound)
+{
+    return sound.playing;
+}
+
+void SetSoundVolume(Sound sound, float volume)
+{
+    //todo check if this exists
+}
+
+void SetSoundPitch(Sound sound,float pitch) //todo make this work with more than 32k sample rate
+{
+    sound.pitch = (int)(32000.0f * pitch);
+    AS_SetMP3Rate(sound.pitch);
+}
+
+void SetSoundPan(Sound sound, float pan) // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
+{
+    int pI = ((int)(pan * 64.0f)) + 64;
+    sound.pan = pI;
+    AS_SetMP3Pan(pI);
 
 }
 int main()
@@ -134,8 +189,7 @@ int main()
     InitWindow(256, 192, "");
 
 
-
-    if (mp3Data != NULL) AS_MP3DirectPlay(mp3Data, mp3Size);
+    
 
     while (!WindowShouldClose())
     {
