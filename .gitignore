@@ -55,3 +55,10 @@ dkms.conf
 *.dwo
 /.idea
 template.nds
+/arm9
+/arm7
+*.nds
+*.ppm
+*.png
+*.aseprite
+*.mp3
