@@ -80,7 +80,7 @@ float GetMasterVolume(void);                                    // Get master vo
     Sound LoadSoundFromWave(Wave wave);                             // Load sound from wave data
     Sound LoadSoundAlias(Sound source);                             // Create a new sound that shares the same sample data as the source sound, does not own the sound data
     bool IsSoundValid(Sound sound);                                 // Checks if a sound is valid (data loaded and buffers initialized)
-    void UpdateSound(Sound sound, const void *data, int sampleCount); // Update sound buffer with new data (default data format: 32 bit float, stereo)
+   // void UpdateSound(Sound sound, const void *data, int sampleCount); // Update sound buffer with new data (default data format: 32 bit float, stereo)
     void UnloadWave(Wave wave);                                     // Unload wave data
     void UnloadSound(Sound sound);                                  // Unload sound
     void UnloadSoundAlias(Sound alias);                             // Unload a sound alias (does not deallocate sample data)
@@ -119,7 +119,7 @@ float GetMasterVolume(void);                                    // Get master vo
     void SetMusicPan(Music music, float pan);                       // Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
     float GetMusicTimeLength(Music music);                          // Get music time length (in seconds)
     float GetMusicTimePlayed(Music music);                          // Get current music time played (in seconds)
-
+    void UpdateSound(Sound* sound);
     // AudioStream management functions
     AudioStream LoadAudioStream(unsigned int sampleRate, unsigned int sampleSize, unsigned int channels); // Load audio stream (to stream raw audio pcm data)
     bool IsAudioStreamValid(AudioStream stream);                    // Checks if an audio stream is valid (buffers initialized)

@@ -3,6 +3,8 @@
 //
 
 
+#include <math.h>
+
 #include "rcore_ds.h"
 #include <nds.h>
 #include <stdlib.h>
@@ -81,7 +83,7 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
         }
         else if (channels == 2)
         {
-            w.s.rate = read32(&dat[24]);
+            w.s.rate = read32(&dat[24]) * 2;
         }
 
         w.s.volume = 127;
@@ -128,21 +130,26 @@ uint16_t read16(const u8 *p)
 {
     return p[0] | (p[1] << 8);
 }
+
 typedef struct
 {
     Wave w;
     bool alias;
     int channel;
     bool playing;
-}Sound;
-Sound LoadSound(const char *fileName)
+    u32 pausedOffset;
+    u32 startTick;
+    bool pendingSwitch;
+    u32 tailTicks;
+} Sound;
+/*Sound LoadSound(const char *fileName)
 {
     Sound s;
     s.w = LoadWave(fileName);
     //todo add rest of stuff once sound is filled
     s.alias = false;
     return s;
-};                          // Load sound from file
+};  */                        // Load sound from file
 Sound LoadSoundFromWave(Wave wave)
 {
     return (Sound){wave,false};
@@ -156,7 +163,7 @@ bool IsSoundValid(Sound sound)
     if (sound.w.s.data != NULL) return true; //todo make more robust
     return false;
 };                                 // Checks if a sound is valid (data loaded and buffers initialized)
-void UpdateSound(Sound sound, const void *data, int sampleCount); // Update sound buffer with new data (default data format: 16 bit integer, stereo)
+//void UpdateSound(Sound sound, const void *data, int sampleCount); // Update sound buffer with new data (default data format: 16 bit integer, stereo)
 void UnloadWave(Wave wave)
 {
     free(wave.s.data);
@@ -194,37 +201,77 @@ void InitAudioDevice(void)
 }
 
 
-void PlaySound(Sound *sound)
+Sound LoadSound(const char *fileName)
 {
-    //sound.channel = AS_SoundPlay(sound.w.s);
-    sound->channel = soundPlaySample(sound->w.s.data,sound->w.s.format,sound->w.s.size,sound->w.s.rate,sound->w.s.volume,sound->w.s.pan,1,0);
+    Sound s;
+    s.w = LoadWave(fileName);
+    s.alias = false;
+    s.channel = -1;
+    s.playing = false;
+    return s;
 }
 
 void StopSound(Sound *sound)
 {
-    //if (sound.channel == NULL || sound.channel < 0 || sound.channel > 15) return;
-    //AS_SoundStop(sound.channel);
+    if (sound->channel < 0) return;
     soundKill(sound->channel);
+    sound->playing = false;
+}
+
+void PlaySound(Sound *sound)
+{
+    sound->pausedOffset = 0;
+    sound->channel = soundPlaySample(sound->w.s.data, sound->w.s.format, sound->w.s.size,sound->w.s.rate, sound->w.s.volume, sound->w.s.pan, 1, 0);
+    sound->playing = true;
+    sound->startTick = cpuGetTiming();
 }
 
 void PauseSound(Sound *sound)
-{//doesnt fucking exist
-    soundPause(sound->channel);
-    if (sound->playing == true)
-    {
-        //AS_Sound();
+{
+    if (!sound->playing || sound->channel < 0) return;
 
-        sound->playing = false;
-    }
+    u32 elapsedTicks = cpuGetTiming() - sound->startTick;
+    float elapsedSeconds = (float)elapsedTicks / BUS_CLOCK;
+
+    int bytesPerSample = (sound->w.s.format == AS_PCM_16BIT) ? 2 : 1;
+    u32 elapsedBytes = (u32)(elapsedSeconds * sound->w.s.rate) * bytesPerSample;
+
+    sound->pausedOffset += elapsedBytes;
+    sound->pausedOffset %= sound->w.s.size;
+
+    soundKill(sound->channel);
+    sound->playing = false;
 }
 
 void ResumeSound(Sound *sound)
-{//same with pausing todo figure out what to do later
-    soundResume(sound->channel);
-    if (sound->playing == false)
-    {
+{
+    if (sound->playing || sound->pausedOffset >= sound->w.s.size) return;
 
-        sound->playing = true;
+    int bytesPerSample = (sound->w.s.format == AS_PCM_16BIT) ? 2 : 1;
+    u32 remainingBytes = sound->w.s.size - sound->pausedOffset;
+
+    sound->channel = soundPlaySample(sound->w.s.data + sound->pausedOffset, sound->w.s.format,remainingBytes, sound->w.s.rate, sound->w.s.volume,sound->w.s.pan, false, 0);
+
+    sound->playing = true;
+    sound->startTick = cpuGetTiming();
+    sound->pendingSwitch = true;
+
+    sound->tailTicks  = (u32)(((u64)remainingBytes * BUS_CLOCK) / ((u64)bytesPerSample * sound->w.s.rate));
+}
+
+void UpdateSound(Sound *sound)
+{
+    if (!sound->playing || !sound->pendingSwitch) return;
+
+    u32 elapsedTicks = cpuGetTiming() - sound->startTick;
+
+    if (elapsedTicks >= sound->tailTicks)
+    {
+        soundKill(sound->channel);
+        sound->channel = soundPlaySample(sound->w.s.data, sound->w.s.format, sound->w.s.size,sound->w.s.rate, sound->w.s.volume, sound->w.s.pan, true, 0);
+        sound->startTick = cpuGetTiming();
+        sound->pausedOffset = 0;
+        sound->pendingSwitch = false;
     }
 }
 
