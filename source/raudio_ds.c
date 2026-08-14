@@ -1,17 +1,8 @@
-//
-// Created by Nmsou on 13/08/2026.
-//
-
-
 #include <math.h>
-
 #include "rcore_ds.h"
 #include <nds.h>
 #include <stdlib.h>
-
-#include <nds/arm9/sound.h>
-
-#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/external/palib/include/arm9/as_lib9.h"
+#include <arm9/as_lib9.h>
 
 
 typedef  struct
@@ -19,8 +10,33 @@ typedef  struct
     SoundInfo s;
     bool alias;
 }Wave;
-uint32_t read32(const u8 *p);
-uint16_t read16( const u8 *p);
+
+
+typedef struct
+{
+    Wave w;
+    //SoundInfo s;
+    int channel;
+    bool playing;
+    u32 pausedOffset;
+    bool alias;
+    bool pendingHandoff;
+    int startTick;
+} Sound;
+
+
+uint32_t read32(const u8 *p)
+{
+    return p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
+}
+
+uint16_t read16(const u8 *p)
+{
+    return p[0] | (p[1] << 8);
+}
+
+
+
 Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int dataSize)
 {
     Wave w;
@@ -57,7 +73,7 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
         w.s.loop = 1;
         //int ch = AS_SoundPlay(s);
         //printf("%d",ch);
-        printf("channels=%d rate=%ld format=%d size=%lu\n", channels, w.s.rate, w.s.format, w.s.size);
+        //printf("channels=%d rate=%ld format=%d size=%lu\n", channels, w.s.rate, w.s.format, w.s.size);
         return w;
 
     }
@@ -81,89 +97,9 @@ Wave LoadWave(const char* fileName)
         printf("Failed to load %s",fileName);
     }
 }
-
 bool isWaveValid(Wave w)
 {
     return true; // todo deal with this later
-}
-
-uint32_t read32(const u8 *p)
-{
-    return p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
-}
-
-uint16_t read16(const u8 *p)
-{
-    return p[0] | (p[1] << 8);
-}
-
-typedef struct
-{
-    Wave w;
-    //SoundInfo s;
-    int channel;
-    bool playing;
-    u32 pausedOffset;
-    bool alias;
-    bool pendingHandoff;
-    int startTick;
-} Sound;
-/*Sound LoadSound(const char *fileName)
-{
-    Sound s;
-    s.w = LoadWave(fileName);
-    //todo add rest of stuff once sound is filled
-    s.alias = false;
-    return s;
-};  */                        // Load sound from file
-Sound LoadSoundFromWave(Wave wave)
-{
-    return (Sound){wave,false};
-};                             // Load sound from wave data
-Sound LoadSoundAlias(Sound source)
-{
-    return (Sound){source.w,true};
-};                             // Create a new sound that shares the same sample data as the source sound, does not own the sound data
-bool IsSoundValid(Sound sound)
-{
-    if (sound.w.s.data != NULL) return true; //todo make more robust
-    return false;
-};                                 // Checks if a sound is valid (data loaded and buffers initialized)
-//void UpdateSound(Sound sound, const void *data, int sampleCount); // Update sound buffer with new data (default data format: 16 bit integer, stereo)
-void UnloadWave(Wave wave)
-{
-    free(wave.s.data);
-    wave.s.size = 0;
-    wave.s.format = -1;
-    wave.s.volume = 0;
-};                                     // Unload wave data
-void UnloadSound(Sound sound)
-{
-    UnloadWave(sound.w);
-};                                  // Unload sound
-void UnloadSoundAlias(Sound alias)
-{
-    if (alias.alias != true) return;
-
-
-    alias.w.s.data = NULL;
-    alias.w.s.size = 0;
-
-};                             // Unload a sound alias (does not deallocate sample data)
-bool ExportWave(Wave wave, const char *fileName)
-{
-    return false; //todo
-};               // Export wave data to file, returns true on success
-bool ExportWaveAsCode(Wave wave, const char *fileName)
-{
-    //todo
-};
-
-
-void InitAudioDevice(void)
-{
-    soundEnable();
-
 }
 
 
@@ -176,6 +112,63 @@ Sound LoadSound(const char *fileName)
     s.playing = false;
     return s;
 }
+Sound LoadSoundFromWave(Wave wave)
+{
+    return (Sound){wave,false};
+};
+Sound LoadSoundAlias(Sound source)
+{
+    return (Sound){source.w,true};
+};
+bool IsSoundValid(Sound sound)
+{
+    if (sound.w.s.data != NULL) return true; //todo make more robust
+    return false;
+};            // Checks if a sound is valid (data loaded and buffers initialized)
+//void UpdateSound(Sound sound, const void *data, int sampleCount); // Update sound buffer with new data (default data format: 16 bit integer, stereo)
+
+
+
+void UnloadWave(Wave wave)
+{
+    free(wave.s.data);
+    wave.s.size = 0;
+    wave.s.format = -1;
+    wave.s.volume = 0;
+};
+void UnloadSound(Sound sound)
+{
+    UnloadWave(sound.w);
+};
+void UnloadSoundAlias(Sound alias)
+{
+    if (alias.alias != true) return;
+
+
+    alias.w.s.data = NULL;
+    alias.w.s.size = 0;
+
+};
+
+
+
+bool ExportWave(Wave wave, const char *fileName)
+{
+    return false; //todo
+};
+bool ExportWaveAsCode(Wave wave, const char *fileName)
+{
+    //todo
+};
+
+
+void InitAudioDevice(void)
+{
+
+}
+
+
+
 
 void StopSound(Sound *sound)
 {
@@ -183,7 +176,6 @@ void StopSound(Sound *sound)
     soundKill(sound->channel);
     sound->playing = false;
 }
-
 void PlaySound(Sound *sound)
 {
     sound->pausedOffset = 0;
@@ -192,7 +184,6 @@ void PlaySound(Sound *sound)
     sound->pendingHandoff = false;
     sound->startTick = cpuGetTiming();
 }
-
 void PauseSound(Sound *sound)
 {
     if (!sound->playing || sound->channel < 0) return;
@@ -210,7 +201,6 @@ void PauseSound(Sound *sound)
     sound->playing = false;
     sound->pendingHandoff = false;
 }
-
 void ResumeSound(Sound *sound)
 {
     if (sound->playing || sound->pausedOffset >= sound->w.s.size) return;
@@ -226,7 +216,7 @@ void ResumeSound(Sound *sound)
     sound->startTick = cpuGetTiming();
 }
 
-void UpdateSound(Sound *sound)
+void UpdateSound(Sound *sound) //todo rename and restructure
 {
     if (!sound->playing || !sound->pendingHandoff) return;
     if (sound->channel < 0) return;
@@ -242,31 +232,32 @@ void UpdateSound(Sound *sound)
         sound->startTick = cpuGetTiming();
     }
 }
+//todo figure out how to automatically do updatesound later
+//todo also fill in audiodevice stuff
+
 bool IsSoundPlaying(Sound sound)
 {
     return sound.playing;
 }
-
 void SetSoundVolume(Sound sound, float volume)
 {
-    //todo check if this exists
-}
 
-void SetSoundPitch(Sound sound,float pitch) //todo make this work with more than 32k sample rate
+    float v = volume * 127;
+    AS_SetSoundVolume(sound.channel,(int)volume);
+}
+void SetSoundPitch(Sound sound,float pitch)
 {
     sound.w.s.rate = (int)(sound.w.s.rate * pitch);
-    //AS_SetMP3Rate(sound.w.s.rate);
+    AS_SetSoundRate(sound.channel,sound.w.s.rate);
 }
-
 void SetSoundPan(Sound sound, float pan) // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 {
     int pI = ((int)(pan * 64.0f)) + 64;
     sound.w.s.pan = pI;
-    //AS_SetMP3Pan(pI);
+    AS_SetSoundPan(sound.channel,pI);
 
 }
 
-//todo REFACTOR THIS TOP BIT TO BE WAV FILES REFER TO https://codeberg.org/SkyLyrac/palib/src/branch/master/source/arm9/as_lib9.c
 
 typedef struct
 {
@@ -358,3 +349,4 @@ void SetMusicPan(Music music, float pan)
 float GetMusicTimeLength(Music music){}//todo figure out how to do this};                          // Get music time length (in seconds)
 float GetMusicTimePlayed(Music music){}//todo add a timer};
 
+//AUDIOSTREAM IS BROKEN ASLIB READS FROM THE SD CARD DURING AN INTERRUPT BUT IT IS BROKEN
