@@ -11,42 +11,8 @@
 
 #include <nds/arm9/sound.h>
 
-#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/core/libs/libnds/include/nds/arm9/sound.h"
-//#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/external/palib/include/arm9/as_lib9.h"
-typedef enum
-{
-    /// 8-bit PCM
-    AS_PCM_8BIT = 0,
-    /// 16-bit PCM
-    AS_PCM_16BIT = 1,
-    /// 4-bit ADPCM
-    AS_ADPCM = 2
+#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/external/palib/include/arm9/as_lib9.h"
 
-} AS_SOUNDFORMAT;
-
-
-typedef struct
-{
-    /// Pointer to data
-    u8  *data;
-    /// Size in bytes
-    u32 size;
-    /// Format (see AS_SOUNDFORMAT)
-    u8  format;
-    /// Rate in Hz
-    s32 rate;
-    /// Volume (0-127)
-    u8  volume;
-    /// Pan (0-64-127)
-    u8  pan;
-    /// Loop (0 or 1)
-    u8  loop;
-    /// Priority
-    u8  priority;
-    /// Delay
-    u8  delay;
-
-} SoundInfo;
 
 typedef  struct
 {
@@ -134,13 +100,13 @@ uint16_t read16(const u8 *p)
 typedef struct
 {
     Wave w;
-    bool alias;
+    //SoundInfo s;
     int channel;
     bool playing;
     u32 pausedOffset;
-    u32 startTick;
-    bool pendingSwitch;
-    u32 tailTicks;
+    bool alias;
+    bool pendingHandoff;
+    int startTick;
 } Sound;
 /*Sound LoadSound(const char *fileName)
 {
@@ -221,8 +187,9 @@ void StopSound(Sound *sound)
 void PlaySound(Sound *sound)
 {
     sound->pausedOffset = 0;
-    sound->channel = soundPlaySample(sound->w.s.data, sound->w.s.format, sound->w.s.size,sound->w.s.rate, sound->w.s.volume, sound->w.s.pan, 1, 0);
+    sound->channel = AS_SoundPlay(sound->w.s);
     sound->playing = true;
+    sound->pendingHandoff = false;
     sound->startTick = cpuGetTiming();
 }
 
@@ -239,42 +206,42 @@ void PauseSound(Sound *sound)
     sound->pausedOffset += elapsedBytes;
     sound->pausedOffset %= sound->w.s.size;
 
-    soundKill(sound->channel);
+    AS_SoundStop(sound->channel);
     sound->playing = false;
+    sound->pendingHandoff = false;
 }
 
 void ResumeSound(Sound *sound)
 {
     if (sound->playing || sound->pausedOffset >= sound->w.s.size) return;
 
-    int bytesPerSample = (sound->w.s.format == AS_PCM_16BIT) ? 2 : 1;
-    u32 remainingBytes = sound->w.s.size - sound->pausedOffset;
+    SoundInfo tail = sound->w.s;
+    tail.data = sound->w.s.data + sound->pausedOffset;
+    tail.size = sound->w.s.size - sound->pausedOffset;
+    tail.loop = 0;
 
-    sound->channel = soundPlaySample(sound->w.s.data + sound->pausedOffset, sound->w.s.format,remainingBytes, sound->w.s.rate, sound->w.s.volume,sound->w.s.pan, false, 0);
-
+    sound->channel = AS_SoundPlay(tail);
     sound->playing = true;
+    sound->pendingHandoff = true;
     sound->startTick = cpuGetTiming();
-    sound->pendingSwitch = true;
-
-    sound->tailTicks  = (u32)(((u64)remainingBytes * BUS_CLOCK) / ((u64)bytesPerSample * sound->w.s.rate));
 }
 
 void UpdateSound(Sound *sound)
 {
-    if (!sound->playing || !sound->pendingSwitch) return;
+    if (!sound->playing || !sound->pendingHandoff) return;
+    if (sound->channel < 0) return;
 
-    u32 elapsedTicks = cpuGetTiming() - sound->startTick;
-
-    if (elapsedTicks >= sound->tailTicks)
+    if (!IPC_Sound->chan[sound->channel].busy)
     {
-        soundKill(sound->channel);
-        sound->channel = soundPlaySample(sound->w.s.data, sound->w.s.format, sound->w.s.size,sound->w.s.rate, sound->w.s.volume, sound->w.s.pan, true, 0);
-        sound->startTick = cpuGetTiming();
+        SoundInfo full = sound->w.s;
+        full.loop = 1;
+
+        sound->channel = AS_SoundPlay(full);
         sound->pausedOffset = 0;
-        sound->pendingSwitch = false;
+        sound->pendingHandoff = false;
+        sound->startTick = cpuGetTiming();
     }
 }
-
 bool IsSoundPlaying(Sound sound)
 {
     return sound.playing;

@@ -4,41 +4,8 @@
 
 #ifndef RAYLIB_DS_RAUDIO_H
 #define RAYLIB_DS_RAUDIO_H
-typedef enum
-{
-    /// 8-bit PCM
-    AS_PCM_8BIT = 0,
-    /// 16-bit PCM
-    AS_PCM_16BIT = 1,
-    /// 4-bit ADPCM
-    AS_ADPCM = 2
-
-} AS_SOUNDFORMAT;
-
-
-typedef struct
-{
-    /// Pointer to data
-    u8  *data;
-    /// Size in bytes
-    u32 size;
-    /// Format (see AS_SOUNDFORMAT)
-    u8  format;
-    /// Rate in Hz
-    s32 rate;
-    /// Volume (0-127)
-    u8  volume;
-    /// Pan (0-64-127)
-    u8  pan;
-    /// Loop (0 or 1)
-    u8  loop;
-    /// Priority
-    u8  priority;
-    /// Delay
-    u8  delay;
-
-} SoundInfo;
-
+#include <arm9/as_lib9.h>
+#include <arm9/PA_General.h>
 
 typedef  struct
 {
