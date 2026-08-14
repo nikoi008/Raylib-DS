@@ -6,11 +6,45 @@
 #include "rcore_ds.h"
 #include <nds.h>
 #include <stdlib.h>
-#include <arm9/as_lib9.h>
-#include <arm9/PA_General.h>
 
-#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/external/palib/include/arm9/as_lib9.h"
+#include <nds/arm9/sound.h>
 
+#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/core/libs/libnds/include/nds/arm9/sound.h"
+//#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/external/palib/include/arm9/as_lib9.h"
+typedef enum
+{
+    /// 8-bit PCM
+    AS_PCM_8BIT = 0,
+    /// 16-bit PCM
+    AS_PCM_16BIT = 1,
+    /// 4-bit ADPCM
+    AS_ADPCM = 2
+
+} AS_SOUNDFORMAT;
+
+
+typedef struct
+{
+    /// Pointer to data
+    u8  *data;
+    /// Size in bytes
+    u32 size;
+    /// Format (see AS_SOUNDFORMAT)
+    u8  format;
+    /// Rate in Hz
+    s32 rate;
+    /// Volume (0-127)
+    u8  volume;
+    /// Pan (0-64-127)
+    u8  pan;
+    /// Loop (0 or 1)
+    u8  loop;
+    /// Priority
+    u8  priority;
+    /// Delay
+    u8  delay;
+
+} SoundInfo;
 
 typedef  struct
 {
@@ -30,7 +64,7 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
         w.s.size = read32(&dat[40]);
         if (dat[20] == 1)
         {
-            int fmt = read16(&dat[16]);
+            int fmt = read16(&dat[34]);
             if (fmt == 8)
             {
                 w.s.format = AS_PCM_8BIT;
@@ -47,7 +81,7 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
         }
         else if (channels == 2)
         {
-            w.s.rate = read32(&dat[24]) * 2; //todo make it so that 2 channel audio is possible -- this trick suffices for now
+            w.s.rate = read32(&dat[24]);
         }
 
         w.s.volume = 127;
@@ -55,6 +89,7 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
         w.s.loop = 1;
         //int ch = AS_SoundPlay(s);
         //printf("%d",ch);
+        printf("channels=%d rate=%ld format=%d size=%lu\n", channels, w.s.rate, w.s.format, w.s.size);
         return w;
 
     }
@@ -154,39 +189,42 @@ bool ExportWaveAsCode(Wave wave, const char *fileName)
 
 void InitAudioDevice(void)
 {
-    PA_VBLFunctionInit(AS_SoundVBL);
-    AS_Init(AS_MODE_MP3);
-    AS_SetMasterVolume(127);
+    soundEnable();
+
 }
 
 
-void PlaySound(Sound sound)
+void PlaySound(Sound *sound)
 {
-    sound.channel = AS_SoundPlay(sound.w.s);
+    //sound.channel = AS_SoundPlay(sound.w.s);
+    sound->channel = soundPlaySample(sound->w.s.data,sound->w.s.format,sound->w.s.size,sound->w.s.rate,sound->w.s.volume,sound->w.s.pan,1,0);
 }
 
-void StopSound(Sound sound)
+void StopSound(Sound *sound)
 {
-    if (sound.channel == NULL || sound.channel < 0 || sound.channel > 15) return;
-    AS_SoundStop(sound.channel);
+    //if (sound.channel == NULL || sound.channel < 0 || sound.channel > 15) return;
+    //AS_SoundStop(sound.channel);
+    soundKill(sound->channel);
 }
 
-void PauseSound(Sound sound)
+void PauseSound(Sound *sound)
 {//doesnt fucking exist
-
-    if (sound.playing == true)
+    soundPause(sound->channel);
+    if (sound->playing == true)
     {
-        AS_Sound();
-        sound.playing = false;
-    }AS_SoundStop();
+        //AS_Sound();
+
+        sound->playing = false;
+    }
 }
 
-void ResumeSound(Sound sound)
+void ResumeSound(Sound *sound)
 {//same with pausing todo figure out what to do later
-    if (sound.playing == false)
+    soundResume(sound->channel);
+    if (sound->playing == false)
     {
-        AS_MP3Unpause();
-        sound.playing = true;
+
+        sound->playing = true;
     }
 }
 
@@ -202,15 +240,15 @@ void SetSoundVolume(Sound sound, float volume)
 
 void SetSoundPitch(Sound sound,float pitch) //todo make this work with more than 32k sample rate
 {
-    sound.pitch = (int)(32000.0f * pitch);
-    AS_SetMP3Rate(sound.pitch);
+    sound.w.s.rate = (int)(sound.w.s.rate * pitch);
+    //AS_SetMP3Rate(sound.w.s.rate);
 }
 
 void SetSoundPan(Sound sound, float pan) // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 {
     int pI = ((int)(pan * 64.0f)) + 64;
-    sound.pan = pI;
-    AS_SetMP3Pan(pI);
+    sound.w.s.pan = pI;
+    //AS_SetMP3Pan(pI);
 
 }
 
@@ -256,7 +294,7 @@ void UnloadMusicStream(Music music)
 };                            // Unload music stream
 void PlayMusicStream(Music music)
 {
-    AS_MP3DirectPlay(music.mData,music.mSize);
+    //AS_MP3DirectPlay(music.mData,music.mSize);
     music.playing = true;
 };                              // Start music playing
 bool IsMusicStreamPlaying(Music music)
@@ -266,13 +304,13 @@ bool IsMusicStreamPlaying(Music music)
 void UpdateMusicStream(Music music);                            // Updates buffers for music streaming todo see what this does
 void StopMusicStream(Music music)
 {
-    AS_MP3Stop();
+    //AS_MP3Stop();
 };                              // Stop music playing
 void PauseMusicStream(Music music)
 {
     if (music.playing == true)
     {
-        AS_MP3Pause();
+        //AS_MP3Pause();
     }
 
 };                             // Pause music playing
@@ -280,7 +318,7 @@ void ResumeMusicStream(Music music)
 {
     if (music.playing == false)
     {
-        AS_MP3Unpause();
+        //AS_MP3Unpause();
     }
 };                            // Resume playing paused music
 void SeekMusicStream(Music music, float position)
@@ -290,18 +328,18 @@ void SeekMusicStream(Music music, float position)
 void SetMusicVolume(Music music, float volume)
 {
     music.volume = (int)(volume * 127);
-    AS_SetMP3Volume(music.volume);
+    //AS_SetMP3Volume(music.volume);
 }                 // Set volume for music (1.0 is max level)
 void SetMusicPitch(Music music, float pitch)
 {
     music.pitch = (int)(32000.0f * pitch);
-    AS_SetMP3Rate(music.pitch);
+    //AS_SetMP3Rate(music.pitch);
 };                   // Set pitch for a music (1.0 is base level)
 void SetMusicPan(Music music, float pan)
 {
     int pI = ((int)(pan * 64.0f)) + 64;
     music.pan = pI;
-    AS_SetMP3Pan(pI);
+    //AS_SetMP3Pan(pI);
 };                       // Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
 float GetMusicTimeLength(Music music){}//todo figure out how to do this};                          // Get music time length (in seconds)
 float GetMusicTimePlayed(Music music){}//todo add a timer};
