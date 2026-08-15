@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include "rcore_ds.h"
 #include <fat.h>
+
 #define MAX_FILEPATH_LENGTH      256
 #define FILE_FILTER_TAG_ALL        "*.*"
 #define FILE_FILTER_TAG_DIR_ONLY   "DIRS*"
@@ -22,7 +23,7 @@ static SaveFileDataCallback saveFileData = NULL;    // SaveFileText callback fun
 static LoadFileTextCallback loadFileText = NULL;    // LoadFileText callback function pointer
 static SaveFileTextCallback saveFileText = NULL;    // SaveFileText callback function pointer
 
-void TRACELOG(int logType, const char *text, ...) //todo replace all old printf ones with this
+void TRACELOG(int logType, const char *text, ...)
 {
 
     va_list args;
@@ -96,10 +97,10 @@ void ToggleBorderlessWindowed(void){};                        // Toggle window s
 void MaximizeWindow(void){};                                  // Set window state: maximized, if resizable
 void MinimizeWindow(void){};                                  // Set window state: minimized, if resizable
 void RestoreWindow(void){};                                   // Restore window from being minimized/maximized
-void SetWindowIcon(Image image){};                            // Set icon for window (single image, RGBA 32bit)
-void SetWindowIcons(Image *images, int count){};              // Set icon for window (multiple images, RGBA 32bit)
-void SetWindowTitle(const char *title){};                     // Set title for window
-void SetWindowPosition(int x, int y){};                       // Set window position on screen
+void SetWindowIcon(Image image){return;};                            // Set icon for window (single image, RGBA 32bit)
+void SetWindowIcons(Image *images, int count){return;};              // Set icon for window (multiple images, RGBA 32bit)
+void SetWindowTitle(const char *title){return;};                     // Set title for window
+void SetWindowPosition(int x, int y){return;};                       // Set window position on screen
 void SetWindowMonitor(int monitor)
 {
     if (DS.currentMainScreen == 0 && monitor == 1)
@@ -183,7 +184,7 @@ void BeginDrawing()
 
 void SetTargetFPS(int fps)
 {
-    //non functional, only here for compatibility
+    return;
 }
 void EndDrawing()
 {
@@ -202,7 +203,7 @@ float GetFrameTime()
 
 float GetTime()
 {
-    u32  ticks = cpuGetTiming();
+    u32 ticks = cpuGetTiming();
     return ticks / BUS_CLOCK;
 }
 
@@ -280,7 +281,7 @@ unsigned char *LoadFileData(const char *fileName, int *dataSize)
 
     if (fileName != NULL)
     {
-        //if (loadFileData) return loadFileData(fileName, dataSize); tf?
+        if (loadFileData) return loadFileData(fileName, dataSize);
 
         FILE *file = fopen(fileName, "rb");
 
@@ -305,7 +306,7 @@ unsigned char *LoadFileData(const char *fileName, int *dataSize)
                     // dataSize is unified along raylib as a 'int' type, so, for file-sizes >INT_MAX (2147483647 bytes) there is a limitation
                     if (count > 2147483647)
                     {
-                        TRACELOG(LOG_ALL,"FILEIO: [%s] File is bigger than 2147483647 bytes, avoid using LoadFileData()", fileName);
+                        TRACELOG(LOG_WARNING, "FILEIO: [%s] File is bigger than 2147483647 bytes, avoid using LoadFileData()", fileName);
 
                         free(data);
                         data = NULL;
@@ -314,23 +315,22 @@ unsigned char *LoadFileData(const char *fileName, int *dataSize)
                     {
                         *dataSize = (int)count;
 
-                        if ((*dataSize) != size) printf("FILEIO: [%s] File partially loaded (%i bytes out of %i)", fileName, *dataSize, size);
-                        else printf("FILEIO: [%s] File loaded successfully", fileName);
+                        if ((*dataSize) != size) TRACELOG(LOG_WARNING, "FILEIO: [%s] File partially loaded (%i bytes out of %i)", fileName, *dataSize, size);
+                        else TRACELOG(LOG_INFO, "FILEIO: [%s] File loaded successfully", fileName);
                     }
                 }
-                else printf("FILEIO: [%s] Failed to allocated memory for file reading", fileName);
+                else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to allocated memory for file reading", fileName);
             }
-            else printf("FILEIO: [%s] Failed to read file", fileName);
+            else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to read file", fileName);
 
             fclose(file);
         }
-        else printf("FILEIO: [%s] Failed to open file", fileName);
+        else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to open file", fileName);
     }
-    else printf("FILEIO: File name provided is not valid");
+    else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
 
     return data;
 }
-
 void UnloadFileData(unsigned char *data)
 {
     free(data);
@@ -341,7 +341,7 @@ bool SaveFileData(const char *fileName, const void *data, int dataSize)
 
     if (fileName != NULL)
     {
-        //if (saveFileData) return saveFileData(fileName, data, dataSize); ??
+        if (saveFileData) return saveFileData(fileName, data, dataSize);
 
         FILE *file = fopen(fileName, "wb");
 
@@ -351,19 +351,19 @@ bool SaveFileData(const char *fileName, const void *data, int dataSize)
             // and expects a size_t input value but as dataSize is limited to INT_MAX (2147483647 bytes), there shouldn't be a problem
             int count = (int)fwrite(data, sizeof(unsigned char), dataSize, file);
 
-            if (count == 0) printf("FILEIO: [%s] Failed to write file", fileName);
-            else if (count != dataSize) printf("FILEIO: [%s] File partially written", fileName);
-            else printf("FILEIO: [%s] File saved successfully", fileName);
+            if (count == 0) TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to write file", fileName);
+            else if (count != dataSize) TRACELOG(LOG_WARNING, "FILEIO: [%s] File partially written", fileName);
+            else TRACELOG(LOG_INFO, "FILEIO: [%s] File saved successfully", fileName);
 
             int closed = fclose(file);
             if (closed == 0) result = true;
         }
-        else printf("FILEIO: [%s] Failed to open file", fileName);
+        else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to open file", fileName);
     }
-    else printf("FILEIO: File name provided is not valid");
+    else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
 
     return result;
-} // Save data to file from byte array (write), returns true on success
+}// Save data to file from byte array (write), returns true on success
 bool ExportDataAsCode(const unsigned char *data, int dataSize, const char *fileName)
 {
     bool result = false;
@@ -410,18 +410,19 @@ bool ExportDataAsCode(const unsigned char *data, int dataSize, const char *fileN
 
     free(txtData);
 
-    if (result != 0) printf("FILEIO: [%s] Data as code exported successfully", fileName);
-    else printf("FILEIO: [%s] Failed to export data as code", fileName);
+    if (result != 0) TRACELOG(LOG_INFO, "FILEIO: [%s] Data as code exported successfully", fileName);
+    else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to export data as code", fileName);
 
     return result;
-} // Export data to code (.h), returns true on success
+}
+// Export data to code (.h), returns true on success
 char *LoadFileText(const char *fileName)
 {
     char *text = NULL;
 
     if (fileName != NULL)
     {
-       // if (loadFileText) return loadFileText(fileName);
+        if (loadFileText) return loadFileText(fileName);
 
         FILE *file = fopen(fileName, "rt");
 
@@ -449,9 +450,9 @@ char *LoadFileText(const char *fileName)
                     // Zero-terminate the string
                     text[count] = '\0';
 
-                    printf("FILEIO: [%s] Text file loaded successfully", fileName);
+                    TRACELOG(LOG_INFO, "FILEIO: [%s] Text file loaded successfully", fileName);
                 }
-                else printf("FILEIO: [%s] Failed to allocated memory for file reading", fileName);
+                else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to allocated memory for file reading", fileName);
             }
             else TRACELOG(LOG_WARNING, "FILEIO: [%s] Failed to read text file", fileName);
 
@@ -462,7 +463,8 @@ char *LoadFileText(const char *fileName)
     else TRACELOG(LOG_WARNING, "FILEIO: File name provided is not valid");
 
     return text;
-}// Load text data from file (read), returns a '\0' terminated string
+}
+// Load text data from file (read), returns a '\0' terminated string
 void UnloadFileText(char *text)
 {
     free(text);
@@ -1645,7 +1647,7 @@ bool IsGamepadButtonUp(int gamepad, int button){return IsKeyUp(button);}        
 int GetGamepadButtonPressed(void){return GetKeyPressed();};                      // Get the last gamepad button pressed
 int GetGamepadAxisCount(int gamepad){return 0;};                   // Get axis count for a gamepad
 float GetGamepadAxisMovement(int gamepad, int axis){return 0.0f;};    // Get movement value for a gamepad axis
-int SetGamepadMappings(const char *mappings){return 0;};           // Set internal gamepad mappings (SDL_GameControllerDB)
+int SetGamepadMappings(const char *mappings){return 0;};           // Set internal gamepad mappings (SDL_GameControllerDB) doable-ish? //todo
 void SetGamepadVibration(int gamepad, float leftMotor, float rightMotor, float duration){return;}; // Set gamepad vibration for both motors (duration in seconds)
 
 //--------------- TODO DO ALL THIS MUCH LATER ---------------------------
@@ -1664,6 +1666,29 @@ float GetMouseWheelMove(void);                          // Get mouse wheel movem
 Vector2 GetMouseWheelMoveV(void);                       // Get mouse wheel movement for both X and Y
 void SetMouseCursor(int cursor);                        // Set mouse cursor
 
+
+int GetTouchX(void)
+{
+    return DS.touchpos.px;
+};                                    // Get touch position X for touch point 0 (relative to screen size)
+int GetTouchY(void)
+{
+    return DS.touchpos.py;
+};                                    // Get touch position Y for touch point 0 (relative to screen size)
+Vector2 GetTouchPosition(int index)
+{
+    return (Vector2){(float)DS.touchpos.px,(float)DS.touchpos.py};
+};                    // Get touch position XY for a touch point index (relative to screen size)
+int GetTouchPointId(int index)
+{
+    //what does this mean?
+};                         // Get touch point identifier for given index
+int GetTouchPointCount(void)
+{
+    u16 kd = keysDown();
+    if (kd & KEY_TOUCH){ return 1 ;}
+    return 0;
+};
 
 //https://github.com/blocksds/sdk/blob/master/examples/input/gesture_recognition/source/main.cpp ??ftodo compare
 void SetGesturesEnabled(unsigned int flags);            // Enable a set of gestures using flags
