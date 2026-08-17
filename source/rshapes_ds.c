@@ -43,7 +43,6 @@ void DrawLineEx(Vector2 startPos, Vector2 endPos, float thick, Color color)
     //if (lenSq == 0) return;
 
     s32 len = sqrtf32(lenSq);
-
     s32 nx = -divf32(mulf32(dy, halfThick), len);
     s32 ny =  divf32(mulf32(dx, halfThick), len);
 
@@ -108,7 +107,30 @@ void DrawLineDashed(Vector2 startPos, Vector2 endPos, int dashSize, int spaceSiz
 
 void DrawCircle(int centerX, int centerY, float radius, Color color)
 {
-    DrawCircleSector((Vector2){ (float)centerX, (float)centerY }, radius, 0, 360, 36, color);
+    //DrawCircleSector((Vector2){ (float)centerX, (float)centerY }, radius, 0, 360, 36, color);
+    int x = 0;
+    int y = (int)(radius);
+    int d = 3 - 2 * (int)(radius);
+
+    while (x <= y)
+    {
+
+        DrawLine(centerX - x, centerY + y,centerX + x, centerY + y,color);
+        DrawLine(centerX - x, centerY - y, centerX + x, centerY - y,color);
+        DrawLine(centerX - y, centerY + x, centerX + y, centerY + x,color);
+        DrawLine(centerX -y , centerY - x, centerX + y,centerY - x,color);
+
+        x++;
+        if(d< 0)
+        {
+            d = d + 4 * x + 6;
+        }
+        else
+        {
+            y = y - 1;
+            d = d + 4 * (x - y) + 10;
+        }
+    }
 
 }
 void DrawCircleV(Vector2 center, float radius, Color color)
