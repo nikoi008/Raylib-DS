@@ -17,8 +17,6 @@ void DrawPixelV(Vector2 position, Color color)
     glPutPixel(position.x,position.y, RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
 };
 
-
-
 void DrawLine(int startPosX, int startPosY, int endPosX, int endPosY, Color color)
 {
     glLine(startPosX,startPosY,endPosX,endPosY, RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
@@ -234,18 +232,39 @@ void DrawCircleSectorLines(Vector2 center, float radius, float startAngle, float
 
 void DrawEllipseV(Vector2 center, float radiusH, float radiusV, Color color)
 {
-    s32 radiusHF32 = floattof32(radiusH);
-    s32 radiusVF32 = floattof32(radiusV);
+    if (radiusH <= 0.0f || radiusV <= 0.0f) return;
 
+    int hh = (int)radiusV * (int)radiusV;
+    int ww = (int)radiusH * (int)radiusH;
+    int hhww = hh * ww;
+    int x0 = (int)radiusH;
+    int dx = 0;
 
-    for (int i = 0; i < 360; i += 10)
+    u16 col = RGB15(color.r >> 3, color.g >> 3, color.b >> 3);
+    int cx = (int)center.x;
+    int cy = (int)center.y;
+
+    glBoxFilled(cx - (int)radiusH, cy, cx + (int)radiusH, cy + 1, col);
+
+    for (int y = 1; y <= (int)radiusV; y++)
     {
-        int x1 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i + 10)),radiusHF32));
-        int x2 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i)),radiusHF32));
-        int y1 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i + 10)),radiusVF32));
-        int y2 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i)),radiusVF32));
+        int x1 = x0 - (dx - 1);
+        for ( ; x1 > 0; x1--)
+            if (x1*x1*hh + y*y*ww <= hhww)
+                break;
+        dx = x0 - x1;
+        x0 = x1;
 
-        glTriangleFilled(center.x,center.y,x1,y1,x2,y2,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+        if (x0 > 0)
+        {
+            glBoxFilled(cx - x0, cy - y, cx + x0, cy - y + 1, col);
+            glBoxFilled(cx - x0, cy + y, cx + x0, cy + y + 1, col);
+        }
+        else
+        {
+            DrawPixel(cx, cy - y, color);
+            DrawPixel(cx, cy + y, color);
+        }
     }
 }
 void DrawEllipse(int centerX,int centerY, float radiusH, float radiusV, Color color)
@@ -255,21 +274,72 @@ void DrawEllipse(int centerX,int centerY, float radiusH, float radiusV, Color co
 void DrawEllipseLines(int centerX, int centerY, float radiusH, float radiusV, Color color)
 {
     DrawEllipseV((Vector2){centerX,centerY},radiusH,radiusV,color);
+
 };
+void drawEllipsePoints(int cx,int cy, int x, int y, Color color)
+{
+    DrawPixel(cx + x, cy + y, color);
+    DrawPixel(cx - x, cy + y, color);
+    DrawPixel(cx + x, cy - y, color);
+    DrawPixel(cx - x, cy - y, color);
+}
 void DrawEllipseLinesV(Vector2 center, float radiusH, float radiusV, Color color)
 {
-    s32 radiusHF32 = floattof32(radiusH);
-    s32 radiusVF32 = floattof32(radiusV);
+    //https://dai.fmph.uniba.sk/upload/0/01/Ellipse.pdf
+    int x = (int)radiusH;
+    int y = 0;
+    int xChange, yChange, ellipseError, twoASquare,twoBSquare,stoppingX,stoppingY;
+    twoASquare = 2 * (int)radiusH * (int)(radiusH);
+    twoBSquare = 2 * (int)radiusV * (int)radiusV;
 
-    for (int i = 0; i < 360; i += 10)
+    xChange = (int)radiusV * (int)radiusV * (1 - 2 * (int)radiusH);
+    yChange = (int)radiusH * (int)radiusH;
+    ellipseError = 0;
+    stoppingX = twoBSquare * radiusH;
+    stoppingY = 0;
+
+    while (stoppingX >= stoppingY)
     {
-        int x1 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i + 10)),radiusHF32));
-        int x2 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i)),radiusHF32));
-        int y1 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i + 10)),radiusVF32));
-        int y2 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i)),radiusVF32));
+        drawEllipsePoints((int)center.x,(int)center.y,x,y,color);
+        y++;
+        stoppingY += twoASquare;
+        ellipseError += yChange;
+        yChange += twoASquare;
 
-        glLine(x1,y1,x2,y2,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+        if ((2 * ellipseError + xChange) > 0)
+        {
+            x--;
+            stoppingX -= twoBSquare;
+            ellipseError += xChange;
+            xChange += twoBSquare;
+        }
     }
+    x = 0;
+    y = (int)radiusV;
+    xChange = (int)radiusV * (int)radiusV;
+    yChange = (int)radiusH * (int)radiusH * (1 - 2 * (int)radiusV);
+    ellipseError = 0;
+    stoppingX =  0;
+    stoppingY = twoASquare * radiusV;
+
+    while (stoppingX <= stoppingY)
+    {
+        drawEllipsePoints((int)center.x,(int)center.y,x,y,color);
+        x++;
+        stoppingX += twoBSquare;
+        ellipseError += xChange;
+        xChange += twoBSquare;
+        if ((2 * ellipseError + yChange) > 0)
+        {
+            y--;
+            stoppingY -= twoASquare;
+            ellipseError += yChange;
+            yChange += twoASquare;
+        }
+    }
+
+
+
 };
 
 
