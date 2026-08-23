@@ -1,6 +1,6 @@
 # Raylib-DS
 
-![alt text](imgs/1.png) 
+![alt text](imgs/1.png)  
 Graphics programming for the ds has never gotten easier!  
 Raylib-DS is a port of raylib to the nintendo ds, taking advantage of modern libraries along with the DS's 3d engine!  
 It currently is in a very early state but there will be ongoing updates!  
