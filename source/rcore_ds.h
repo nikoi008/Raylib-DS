@@ -5,6 +5,8 @@
 #include <nds.h>
 #include "rshapes_ds.h"
 #include <gl2d.h>
+
+#include "rtexture_ds.h"
 typedef void (*TraceLogCallback)(int logLevel, const char *text, va_list args); // Logging: Redirect trace log messages
 typedef unsigned char *(*LoadFileDataCallback)(const char *fileName, int *dataSize); // FileIO: Load binary data
 typedef bool (*SaveFileDataCallback)(const char *fileName, const void *data, int dataSize); // FileIO: Save binary data
@@ -30,15 +32,6 @@ typedef enum {
 } TraceLogLevel;
 
 
-typedef struct
-{
-    int id;
-    u16 *pal;
-    u8* gfx;
-    Vector2 size;
-    glImage* image;
-
-}Image;
 /*
 typedef struct Image {
     void *data;             // Image raw data
@@ -108,7 +101,9 @@ typedef struct
 
 typedef struct
 {
-    int cleanthisuplater;
+    float x;
+    float y;
+    float z;
 }Vector3;
 
 typedef struct

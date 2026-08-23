@@ -3,7 +3,12 @@
 #include <stdarg.h>
 #include "rcore_ds.h"
 #include <fat.h>
+#include <arm9/PA_General.h>
+#include <sys/stat.h> //todo put at top of file
+#include <dirent.h>
 
+
+#include "rtexture_ds.h"
 #define MAX_FILEPATH_LENGTH      256
 #define FILE_FILTER_TAG_ALL        "*.*"
 #define FILE_FILTER_TAG_DIR_ONLY   "DIRS*"
@@ -41,6 +46,7 @@ void SetTraceLogCallback(TraceLogCallback callback)
 
 void InitWindow(int width, int height, const char* title)
 {
+    PA_Init();
     videoSetMode(MODE_0_3D); //https://mtheall.com/banks.html#A=TS0&B=TS1&C=TS2&D=TS3&E=TPAL&F=TPAL4&G=TPAL5&H=SBG0&I=SOBJ
     videoSetModeSub(MODE_0_2D);
 
@@ -53,12 +59,13 @@ void InitWindow(int width, int height, const char* title)
     vramSetBankG(VRAM_G_TEX_PALETTE_SLOT5);
     vramSetBankH(VRAM_H_SUB_BG);
     vramSetBankI(VRAM_I_SUB_SPRITE);
-
-    consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
     glScreen2D();
+    consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
     cpuStartTiming(0);
     DS.lastTicks = cpuGetTiming();
+    lcdSwap();
     consoleDemoInit();
+    //
     if (!fatInitDefault())
     {
         TRACELOG(LOG_ALL,"FAT: SD CARD NOT LOADED");
@@ -176,8 +183,10 @@ void ClearBackground(Color color)
 
 void BeginDrawing()
 {
+
     scanKeys();
     touchRead(&DS.touchpos);
+
     swiWaitForVBlank();
     glBegin2D();
 }
@@ -621,8 +630,7 @@ int FileTextFindIndex(const char *fileName, const char *search)
 
     return result;
 }
-#include <sys/stat.h> //todo put at top of file
-#include <dirent.h>
+
 #define MAX_FILENAME_LENGTH     256
 bool FileExists(const char *fileName)
 {
@@ -1669,10 +1677,13 @@ void SetMouseCursor(int cursor);                        // Set mouse cursor
 
 int GetTouchX(void)
 {
+
     return DS.touchpos.px;
-};                                    // Get touch position X for touch point 0 (relative to screen size)
+};
+// Get touch position X for touch point 0 (relative to screen size)
 int GetTouchY(void)
 {
+
     return DS.touchpos.py;
 };                                    // Get touch position Y for touch point 0 (relative to screen size)
 Vector2 GetTouchPosition(int index)
@@ -1685,7 +1696,7 @@ int GetTouchPointId(int index)
 };                         // Get touch point identifier for given index
 int GetTouchPointCount(void)
 {
-    u16 kd = keysDown();
+    u16 kd = keysHeld();
     if (kd & KEY_TOUCH){ return 1 ;}
     return 0;
 };
