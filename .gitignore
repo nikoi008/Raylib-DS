@@ -59,7 +59,6 @@ template.nds
 /arm7
 *.nds
 *.ppm
-*.png
 *.aseprite
 *.mp3
 *.wav
