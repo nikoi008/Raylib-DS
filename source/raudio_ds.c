@@ -164,9 +164,11 @@ bool ExportWaveAsCode(Wave wave, const char *fileName)
 
 void InitAudioDevice(void)
 {
-
+    irqSet(IRQ_VBLANK, AS_SoundVBL);
+    irqEnable(IRQ_VBLANK);
+    AS_Init(AS_MODE_MP3 | AS_MODE_SURROUND | AS_MODE_16CH);
+    AS_SetDefaultSettings(AS_PCM_8BIT, 11025, AS_SURROUND);
 }
-
 
 
 
@@ -275,7 +277,7 @@ Music LoadMusicStream(const char *fileName)
     char* mData; int mSize;
     mData = LoadFileData(fileName,&mSize);
     return (Music){mSize,mData,fileName,1,64,false};
-}; // Load music stream from file
+} // Load music stream from file
 Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data, int dataSize)
 {
     if (strcmp(fileType,"mp3") == 0)
@@ -285,66 +287,67 @@ Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data,
     TRACELOG(LOG_INFO,"MUSIC STREAM CAN ONLY BE LOADED AS MP3");
     return (Music){0,0,0,0};
 }; // Load music stream from data
-bool IsMusicValid(Music music)
+bool IsMusicValid(Music *music)
 {
-    if (music.mData == NULL) return false;//todo check more
+    if (music->mData == NULL) return false;//todo check more
     return true;
 
 };
-void UnloadMusicStream(Music music)
+void UnloadMusicStream(Music *music)
 {
-    free(music.mData);
-    free(music.filename);
+    free(music->mData);
+    free(music->filename);
 
 };                            // Unload music stream
-void PlayMusicStream(Music music)
+void PlayMusicStream(Music *music)
 {
-    //AS_MP3DirectPlay(music.mData,music.mSize);
-    music.playing = true;
-};                              // Start music playing
-bool IsMusicStreamPlaying(Music music)
+    DC_FlushRange(music->mData, music->mSize);
+    AS_MP3DirectPlay(music->mData, music->mSize);
+    music->playing = true;
+};                           // Start music playing
+bool IsMusicStreamPlaying(Music *music)
 {
-    return music.playing;
+    return music->playing;
 };                         // Check if music is playing
-void UpdateMusicStream(Music music);                            // Updates buffers for music streaming todo see what this does
+void UpdateMusicStream(Music music);                            // Updates buffers for music streaming todo see what this does -- aslib hadnles this by itself afaik
 void StopMusicStream(Music music)
 {
-    //AS_MP3Stop();
+    AS_MP3Stop();
 };                              // Stop music playing
-void PauseMusicStream(Music music)
+void PauseMusicStream(Music *music)
 {
-    if (music.playing == true)
+    if (music->playing == true)
     {
-        //AS_MP3Pause();
+        AS_MP3Pause();
     }
 
 };                             // Pause music playing
-void ResumeMusicStream(Music music)
+void ResumeMusicStream(Music *music)
 {
-    if (music.playing == false)
+    if (music->playing == false)
     {
-        //AS_MP3Unpause();
+        AS_MP3Unpause();
     }
 };                            // Resume playing paused music
 void SeekMusicStream(Music music, float position)
 {
     //impossible afaik
 };              // Seek music to a position (in seconds)
-void SetMusicVolume(Music music, float volume)
+void SetMusicVolume(Music *music, float volume)
 {
-    music.volume = (int)(volume * 127);
-    //AS_SetMP3Volume(music.volume);
+    music->volume = (int)(volume * 127);
+    AS_SetMP3Volume(music->volume);
 }                 // Set volume for music (1.0 is max level)
-void SetMusicPitch(Music music, float pitch)
+void SetMusicPitch(Music *music, float pitch)
 {
-    music.pitch = (int)(32000.0f * pitch);
-    //AS_SetMP3Rate(music.pitch);
+    music->pitch = (int)(32000.0f * pitch);
+    AS_SetMP3Rate(music->pitch);
 };                   // Set pitch for a music (1.0 is base level)
-void SetMusicPan(Music music, float pan)
+void SetMusicPan(Music *music, float pan)
 {
     int pI = ((int)(pan * 64.0f)) + 64;
-    music.pan = pI;
-    //AS_SetMP3Pan(pI);
+    music->pan = pI;
+    AS_SetMP3Pan(pI);
 };                       // Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
 float GetMusicTimeLength(Music music){}//todo figure out how to do this};                          // Get music time length (in seconds)
 float GetMusicTimePlayed(Music music){}//todo add a timer};

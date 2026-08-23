@@ -25,7 +25,16 @@ typedef struct
     float pan;
 } Sound;
 
-typedef struct{int a;}Music;
+typedef struct
+{
+    int mSize;
+    unsigned char* mData;
+    char* filename;
+    int pitch;
+    int pan; //todo free
+    int volume;
+    bool playing; //todo dont forget to also free
+}Music;
 
 
 typedef struct{int a;}AudioStream;
@@ -72,18 +81,18 @@ void UnloadWaveSamples(float *samples);                         // Unload sample
 // Music management functions
 Music LoadMusicStream(const char *fileName);                    // Load music stream from file
 Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data, int dataSize); // Load music stream from data
-bool IsMusicValid(Music music);                                 // Checks if a music stream is valid (context and buffers initialized)
-void UnloadMusicStream(Music music);                            // Unload music stream
-void PlayMusicStream(Music music);                              // Start music playing
-bool IsMusicStreamPlaying(Music music);                         // Check if music is playing
+bool IsMusicValid(Music *music);                                 // Checks if a music stream is valid (context and buffers initialized)
+void UnloadMusicStream(Music *music);                            // Unload music stream
+void PlayMusicStream(Music *music);                              // Start music playing
+bool IsMusicStreamPlaying(Music *music);                         // Check if music is playing
 void UpdateMusicStream(Music music);                            // Updates buffers for music streaming
 void StopMusicStream(Music music);                              // Stop music playing
-void PauseMusicStream(Music music);                             // Pause music playing
-void ResumeMusicStream(Music music);                            // Resume playing paused music
+void PauseMusicStream(Music *music);                             // Pause music playing
+void ResumeMusicStream(Music *music);                            // Resume playing paused music
 void SeekMusicStream(Music music, float position);              // Seek music to a position (in seconds)
-void SetMusicVolume(Music music, float volume);                 // Set volume for music (1.0 is max level)
-void SetMusicPitch(Music music, float pitch);                   // Set pitch for a music (1.0 is base level)
-void SetMusicPan(Music music, float pan);                       // Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
+void SetMusicVolume(Music *music, float volume);                 // Set volume for music (1.0 is max level)
+void SetMusicPitch(Music *music, float pitch);                   // Set pitch for a music (1.0 is base level)
+void SetMusicPan(Music *music, float pan);                       // Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
 float GetMusicTimeLength(Music music);                          // Get music time length (in seconds)
 float GetMusicTimePlayed(Music music);                          // Get current music time played (in seconds)
 void UpdateSound(Sound* sound);
