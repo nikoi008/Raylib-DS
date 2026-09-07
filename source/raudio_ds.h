@@ -16,13 +16,14 @@ typedef  struct
 typedef struct
 {
     Wave w;
-    bool alias;
+    //SoundInfo s;
     int channel;
     bool playing;
-
-
-    float pitch;
-    float pan;
+    u32 pausedOffset;
+    bool alias;
+    bool pendingHandoff;
+    int startTick;
+    int id;
 } Sound;
 
 typedef struct
@@ -66,8 +67,8 @@ bool ExportWaveAsCode(Wave wave, const char *fileName);         // Export wave s
 // Wave/Sound management functions
 void PlaySound(Sound *sound);                                    // Play a sound
 void StopSound(Sound *sound);                                    // Stop playing a sound
-void PauseSound(Sound *sound);                                   // Pause a sound
-void ResumeSound(Sound *sound);                                  // Resume a paused sound
+void PauseSound(Sound sound);                                   // Pause a sound
+void ResumeSound(Sound sound);                                  // Resume a paused sound
 bool IsSoundPlaying(Sound sound);                               // Check if a sound is currently playing
 void SetSoundVolume(Sound sound, float volume);                 // Set volume for a sound (1.0 is max level)
 void SetSoundPitch(Sound sound, float pitch);                   // Set pitch for a sound (1.0 is base level)
@@ -96,6 +97,7 @@ void SetMusicPan(Music *music, float pan);                       // Set pan for 
 float GetMusicTimeLength(Music music);                          // Get music time length (in seconds)
 float GetMusicTimePlayed(Music music);                          // Get current music time played (in seconds)
 void UpdateSound(Sound* sound);
+void UpdateSounds();
 // AudioStream management functions
 AudioStream LoadAudioStream(unsigned int sampleRate, unsigned int sampleSize, unsigned int channels); // Load audio stream (to stream raw audio pcm data)
 bool IsAudioStreamValid(AudioStream stream);                    // Checks if an audio stream is valid (buffers initialized)

@@ -50,9 +50,10 @@ typedef struct
     int currentMainScreen;
     u16 exitKey;
     touchPosition touchpos;
+    bool audioOn;
 }dsCore;
 
-
+extern dsCore DS;
 
 typedef struct
 {

@@ -440,6 +440,10 @@ Texture2D LoadTextureFromImage(Image i)
 {
     Texture2D t;
     t.i = i;
+
+    uint16_t texcoords[4] = {0, 0, t.i.size.x,t.i.size.y};
+    //glImage image[1];
+    glLoadSpriteSet(t.i.image,1,texcoords,GL_RGB256,t.i.size.x, t.i.size.y,TEXGEN_TEXCOORD,256,t.i.pal,t.i.gfx);
     return t;
 }
 

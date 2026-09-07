@@ -13,10 +13,6 @@ typedef struct
     int height;
 }Rectangle;
 
-typedef struct
-{
-    int a;
-}Texture2D;
 
 typedef struct
 {

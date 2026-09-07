@@ -62,3 +62,6 @@ template.nds
 *.aseprite
 *.mp3
 *.wav
+*.png
+source/includes.zip
+test suite/test suite.zip

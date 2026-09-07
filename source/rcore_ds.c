@@ -6,6 +6,7 @@
 #include <arm9/PA_General.h>
 #include <sys/stat.h> //todo put at top of file
 #include <dirent.h>
+#include "raudio_ds.h"
 
 
 #include "rtexture_ds.h"
@@ -22,11 +23,13 @@ typedef bool (*SaveFileTextCallback)(const char *fileName, const char *text); //
 
 
 dsCore DS;
+
 static TraceLogCallback traceLog = NULL;            // TraceLog callback function pointer
 static LoadFileDataCallback loadFileData = NULL;    // LoadFileData callback function pointer
 static SaveFileDataCallback saveFileData = NULL;    // SaveFileText callback function pointer
 static LoadFileTextCallback loadFileText = NULL;    // LoadFileText callback function pointer
 static SaveFileTextCallback saveFileText = NULL;    // SaveFileText callback function pointer
+int GetScreenWidth(void){return 256;}
 
 void TRACELOG(int logType, const char *text, ...)
 {
@@ -75,6 +78,8 @@ void InitWindow(int width, int height, const char* title)
     DS.windowReady = true;
 
     DS.currentMainScreen = 0;
+
+    DS.audioOn = false;
 }
 
 void CloseWindow(void)
@@ -202,7 +207,8 @@ void EndDrawing()
     u32 currentTicks = cpuGetTiming();
     u32 elapsed = currentTicks - DS.lastTicks;
     DS.lastTicks = currentTicks;
-    DS.frameTime = (float)elapsed / BUS_CLOCK;
+   // DS.frameTime = (float)elapsed / BUS_CLOCK; todo use integers
+    UpdateSounds();
 }
 
 float GetFrameTime()
@@ -1686,10 +1692,10 @@ int GetTouchY(void)
 
     return DS.touchpos.py;
 };                                    // Get touch position Y for touch point 0 (relative to screen size)
-Vector2 GetTouchPosition(int index)
-{
-    return (Vector2){(float)DS.touchpos.px,(float)DS.touchpos.py};
-};                    // Get touch position XY for a touch point index (relative to screen size)
+    Vector2 GetTouchPosition(int index)
+    {
+        return (Vector2){(float)DS.touchpos.px,(float)DS.touchpos.py};
+    };                    // Get touch position XY for a touch point index (relative to screen size)
 int GetTouchPointId(int index)
 {
     //what does this mean?
