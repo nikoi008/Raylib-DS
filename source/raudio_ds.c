@@ -13,10 +13,8 @@ typedef  struct
     bool alias;
 }Wave;
 
-
 typedef struct
 {
-    Wave w;
     //SoundInfo s;
     int channel;
     bool playing;
@@ -25,6 +23,12 @@ typedef struct
     bool pendingHandoff;
     int startTick;
     int id;
+}SoundState;
+
+typedef struct
+{
+    SoundState *state;
+    Wave w;
 } Sound;
 
 Sound *playingSounds[16] = {};
@@ -111,10 +115,11 @@ Sound LoadSound(const char *fileName)
 {
     Sound s;
     s.w = LoadWave(fileName);
-    s.alias = false;    
-    s.channel = -1;
-    s.playing = false;
-    s.id = -99;
+    s.state->alias = false;
+    s.state->channel = -1;
+    s.state->playing = false;
+
+    s.state->id = -99;
 
     return s;
 }
@@ -123,13 +128,10 @@ Sound LoadSoundFromWave(Wave wave)
 
     Sound s;
     s.w = wave;
-    s.id = -99;
-    return (Sound){wave};
+    s.state->id = -99;
+    return (Sound){s.state,wave};
 };
-Sound LoadSoundAlias(Sound source)
-{
-    return (Sound){source.w,true};
-};
+
 bool IsSoundValid(Sound sound)
 {
     if (sound.w.s.data != NULL) return true; //todo make more robust
@@ -149,16 +151,9 @@ void UnloadWave(Wave wave)
 void UnloadSound(Sound sound)
 {
     UnloadWave(sound.w);
+    free(sound.state);
 };
-void UnloadSoundAlias(Sound alias)// todo deal with channel stuff for aliases
-{
-    if (alias.alias != true) return;
 
-
-    alias.w.s.data = NULL;
-    alias.w.s.size = 0;
-
-};
 
 
 
@@ -184,34 +179,34 @@ void InitAudioDevice(void)
 
 
 #define MAX_SOUNDS_PLAYING 16
-void StopSound(Sound *sound)
+void StopSound(Sound sound)
 {
-    if (sound->channel < 0) return;
-    soundKill(sound->channel);
-    sound->playing = false;
-    sound->id = -99;
+    if (sound.state->channel < 0) return;
+    soundKill(sound.state->channel);
+    sound.state->playing = false;
+    sound.state->id = -99;
 }
-void PlaySound(Sound *sound)//how will this be passed by va;ue!?!??!
+void PlaySound(Sound sound)//how will this be passed by va;ue!?!??!
 {
-    sound->pausedOffset = 0;
-    sound->channel = AS_SoundPlay(sound->w.s);
-    sound->playing = true;
-    sound->pendingHandoff = false;
-    sound->startTick = cpuGetTiming();
-    if (sound->id < 0)
+    sound.state->pausedOffset = 0;
+    sound.state->channel = AS_SoundPlay(sound.w.s);
+    sound.state->playing = true;
+    sound.state->pendingHandoff = false;
+    sound.state->startTick = cpuGetTiming();
+    if (sound.state->id < 0)
     {
         for (int i = 0; i < MAX_SOUNDS_PLAYING; i++)
         {
             if (playingSounds[i] != NULL) continue;
             else
             {
-                playingSounds[i] = sound;
-                sound->id = i;
+                playingSounds[i] = &sound;
+                sound.state->id = i;
                 break;
             }
 
         }
-        if (sound->id < 0) TRACELOG(LOG_INFO,"SOUND: ALL CHANNELS ALREADY PLAYING MUSIC");
+        if (sound.state->id < 0) TRACELOG(LOG_INFO,"SOUND: ALL CHANNELS ALREADY PLAYING MUSIC");
     }
     else
     {
@@ -222,52 +217,53 @@ void PlaySound(Sound *sound)//how will this be passed by va;ue!?!??!
 void PauseSound(Sound sound)
 {
 
-    if (!playingSounds[sound.id]->playing || playingSounds[sound.id]->channel < 0) return;
+    if (!playingSounds[sound.state->id]->state->playing || playingSounds[sound.state->id]->state->channel < 0) return;
 
-    u32 elapsedTicks = cpuGetTiming() - playingSounds[sound.id]->startTick;
+    u32 elapsedTicks = cpuGetTiming() - playingSounds[sound.state->id]->state->startTick;
     float elapsedSeconds = (float)elapsedTicks / BUS_CLOCK;
 
-    int bytesPerSample = (playingSounds[sound.id]->w.s.format == AS_PCM_16BIT) ? 2 : 1;
-    u32 elapsedBytes = (u32)(elapsedSeconds * playingSounds[sound.id]->w.s.rate) * bytesPerSample;
+    int bytesPerSample = (playingSounds[sound.state->id]->w.s.format == AS_PCM_16BIT) ? 2 : 1;
+    u32 elapsedBytes = (u32)(elapsedSeconds * playingSounds[sound.state->id]->w.s.rate) * bytesPerSample;
 
-    playingSounds[sound.id]->pausedOffset += elapsedBytes;
-    playingSounds[sound.id]->pausedOffset %= playingSounds[sound.id]->w.s.size;
+    playingSounds[sound.state->id]->state->pausedOffset += elapsedBytes;
+    playingSounds[sound.state->id]->state->pausedOffset %= playingSounds[sound.state->id]->w.s.size;
 
-    AS_SoundStop(playingSounds[sound.id]->channel);
-    playingSounds[sound.id]->playing = false;
-    playingSounds[sound.id]->pendingHandoff = false;
+    AS_SoundStop(playingSounds[sound.state->id]->state->channel);
+    playingSounds[sound.state->id]->state->playing = false;
+    playingSounds[sound.state->id]->state->pendingHandoff = false;
 }
 void ResumeSound(Sound sound)
 {
-    if (playingSounds[sound.id]->playing || playingSounds[sound.id]->pausedOffset >= playingSounds[sound.id]->w.s.size) return;
+    if (playingSounds[sound.state->id]->state->playing ||
+        playingSounds[sound.state->id]->state->pausedOffset >= playingSounds[sound.state->id]->w.s.size) return;
 
-    SoundInfo tail = playingSounds[sound.id]->w.s;
-    tail.data = playingSounds[sound.id]->w.s.data + playingSounds[sound.id]->pausedOffset;
-    tail.size = playingSounds[sound.id]->w.s.size - playingSounds[sound.id]->pausedOffset;
+    SoundInfo tail = playingSounds[sound.state->id]->w.s;
+    tail.data = playingSounds[sound.state->id]->w.s.data + playingSounds[sound.state->id]->state->pausedOffset;
+    tail.size = playingSounds[sound.state->id]->w.s.size - playingSounds[sound.state->id]->state->pausedOffset;
     tail.loop = 0;
 
-    playingSounds[sound.id]->channel = AS_SoundPlay(tail);
-    playingSounds[sound.id]->playing = true;
-    playingSounds[sound.id]->pendingHandoff = true;
-    playingSounds[sound.id]->startTick = cpuGetTiming();
+    playingSounds[sound.state->id]->state->channel = AS_SoundPlay(tail);
+    playingSounds[sound.state->id]->state->playing = true;
+    playingSounds[sound.state->id]->state->pendingHandoff = true;
+    playingSounds[sound.state->id]->state->startTick = cpuGetTiming();
 }
 
 void UpdateSounds() //todo rename and restructure
 {
     for (int i = 0; i < MAX_SOUNDS_PLAYING; i++)
     {
-        if (!playingSounds[i]->playing || !playingSounds[i]->pendingHandoff) return;
-        if (playingSounds[i]->channel < 0) return;
+        if (!playingSounds[i]->state->playing || !playingSounds[i]->state->pendingHandoff) return;
+        if (playingSounds[i]->state->channel < 0) return;
 
-        if (!IPC_Sound->chan[playingSounds[i]->channel].busy)
+        if (!IPC_Sound->chan[playingSounds[i]->state->channel].busy)
         {
             SoundInfo full = playingSounds[i]->w.s;
             full.loop = 1;
 
-            playingSounds[i]->channel = AS_SoundPlay(full);
-            playingSounds[i]->pausedOffset = 0;
-            playingSounds[i]->pendingHandoff = false;
-            playingSounds[i]->startTick = cpuGetTiming();
+            playingSounds[i]->state->channel = AS_SoundPlay(full);
+            playingSounds[i]->state->pausedOffset = 0;
+            playingSounds[i]->state->pendingHandoff = false;
+            playingSounds[i]->state->startTick = cpuGetTiming();
         }
     }
 }
@@ -276,25 +272,25 @@ void UpdateSounds() //todo rename and restructure
 bool IsSoundPlaying(Sound sound)
 {
     //return sound.playing;
-    if (sound.id >= 0) return true;
+    if (sound.state->id >= 0) return true;
     return false;
 }
 void SetSoundVolume(Sound sound, float volume)
 {
 
     float v = volume * 127;
-    AS_SetSoundVolume(playingSounds[sound.id]->channel,(int)v);
+    AS_SetSoundVolume(playingSounds[sound.state->id]->state->channel,(int)v);
 }
 void SetSoundPitch(Sound sound,float pitch)
 {
     sound.w.s.rate = (int)(sound.w.s.rate * pitch);
-    AS_SetSoundRate(playingSounds[sound.id]->channel,sound.w.s.rate);
+    AS_SetSoundRate(playingSounds[sound.state->id]->state->channel,sound.w.s.rate);
 }
 void SetSoundPan(Sound sound, float pan) // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 {
     int pI = ((int)(pan * 64.0f)) + 64;
     sound.w.s.pan = pI;
-    AS_SetSoundPan(playingSounds[sound.id]->channel,pI);
+    AS_SetSoundPan(playingSounds[sound.state->id]->state->channel,pI);
 
 }
 
