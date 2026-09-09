@@ -2,14 +2,16 @@
 #include "rcore_ds.h"
 #include "lodepng.h"
 #define BLACK (Color){0,0,0}
-void processPng(char* image, int height, int width)
+#define TO5BITS >>3 //useless macro go brrr
+Image processPng(char* image, int height, int width)
 {
-    if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); return;}
-    if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); return;}
+    if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); return (Image){0};}
+    if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); return (Image){0} ;}
 
-
-    u16* pal = malloc(sizeof(u16) * 255);
-    pal[0] = ARGB16(1,image[0],image[1],image[2]);
+    glImage *immage = malloc(sizeof(glImage));
+    u16* pal = malloc(sizeof(u16) * 256);
+    //pal[0] = ARGB16(1,image[0],image[1],image[2]);
+    pal[0] = ARGB16(1, image[0]TO5BITS, image[1]TO5BITS, image[2]TO5BITS);
     int palTotal = 1;
 
     u8* gfx = malloc(sizeof(u8) * width * height);
@@ -19,9 +21,9 @@ void processPng(char* image, int height, int width)
         for (int y = 0; y < height; y++)
         {
             int index = (y * width + x) * 3;
-            int R = image[index];
-            int G = image[index + 1];
-            int B = image[index + 2];
+            int R = image[index]TO5BITS;
+            int G = image[index + 1]TO5BITS;
+            int B = image[index + 2] TO5BITS;
             u16 col15 = ARGB16(1, R, G, B);
 
             bool uniqueCol = true;
@@ -36,10 +38,10 @@ void processPng(char* image, int height, int width)
             }
         }
     }
-    /*printf("palette");
-    FILE* f;
-    f = fopen("palette log.txt", "w");
-    if (f == NULL)
+    printf("palette");
+    FILE* fa;
+    fa = fopen("palette log.txt", "w");
+    if (fa == NULL)
     {
         printf("fat erra");
     }
@@ -47,40 +49,19 @@ void processPng(char* image, int height, int width)
     {
         char log[64];
         snprintf(log,sizeof(log),"pal %d, %u\n",i,pal[i]);
-        fputs(log,f);
+        fputs(log,fa);
     }
-    fclose(f);*/
+    fclose(fa);
+
 
     for (int x = 0; x < width; x++)
     {
         for (int y = 0; y < height; y++)
         {
             int index = (y * width + x) * 3;
-            bool uniqueCol = true;
-            int R = image[index];
-            int G = image[index + 1];
-            int B = image[index + 2];
-            u16 col15 = ARGB16(1, R, G, B);
-
-            for (int p = 0; p < palTotal; p++)
-            {
-                if (pal[p] == col15) { uniqueCol = false; break; }
-            }
-            if (uniqueCol)
-            {
-                if (palTotal >= 255) { TRACELOG(LOG_WARNING, "too many colors"); continue; }
-                pal[palTotal++] = col15;
-            }
-        }
-    }
-    for (int x = 0; x < width; x++)
-    {
-        for (int y = 0; y < height; y++)
-        {
-            int index = (y * width + x) * 3;
-            int R = image[index];
-            int G = image[index + 1];
-            int B = image[index + 2];
+            int R = image[index] TO5BITS;
+            int G = image[index + 1] TO5BITS;
+            int B = image[index + 2] TO5BITS;
             u16 col15 = ARGB16(1, R, G, B);
             for (int i = 0; i < palTotal; i++)
             {
@@ -90,7 +71,7 @@ void processPng(char* image, int height, int width)
         }
     }
 
-   /* FILE* f;
+   FILE* f;
     f = fopen("gfx log.txt", "w");
     if (f == NULL)
     {
@@ -113,9 +94,10 @@ void processPng(char* image, int height, int width)
         }
     }
     fclose(f);
-*/
-    free(pal);
-    free(gfx);
+
+    //free(pal);
+    //free(gfx);
+    return (Image){1,pal,gfx,(Vector2){width,height},immage,1};
 
 }
 int main()
@@ -126,28 +108,26 @@ int main()
   unsigned char* image = 0;
   unsigned width, height;
 
-  error = lodepng_decode24_file(&image, &width, &height, "test.png");
+  error = lodepng_decode24_file(&image, &width, &height, "ass.png");
   if(error) TRACELOG(LOG_ERROR,"error %u: %s\n", error, lodepng_error_text(error));
   TRACELOG(LOG_ALL,"%c",image);
-  for (int i = 0; i < 12; i++) {
-    TRACELOG(LOG_ALL, " %d: %d", i, image[i]);
-}
 
 
-    processPng(image, height, width);
+
+    Image i = processPng(image, height, width);
+    Texture2D t = LoadTextureFromImage(i);
+    printf("texture loaded");
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(BLACK);
         TRACELOG(LOG_ALL,"smth");
-
+        DrawTexture(t,100,100,BLACK);
         static bool ran = false;
-        if(!ran){
-            ran = true;
-              for (int i = 0; i < 12; i++) {
+
     //TRACELOG(LOG_ALL, " %d: %d", i, image[i]);
-}
-        }
+
+        
         //TRACELOG(LOG_ALL,"channel %d",S.id);
         EndDrawing();
 
