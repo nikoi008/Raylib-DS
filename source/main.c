@@ -16,9 +16,9 @@ Image processPng(char* image, int height, int width)
 
     u8* gfx = malloc(sizeof(u8) * width * height);
 
-    for (int x = 0; x < width; x++)
+    for (int y = 0; y < height; y++)
     {
-        for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++)
         {
             int index = (y * width + x) * 3;
             int R = image[index]TO5BITS;
@@ -54,9 +54,9 @@ Image processPng(char* image, int height, int width)
     fclose(fa);
 
 
-    for (int x = 0; x < width; x++)
+    for (int y = 0; y < height; y++)
     {
-        for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++)
         {
             int index = (y * width + x) * 3;
             int R = image[index] TO5BITS;
@@ -79,9 +79,9 @@ Image processPng(char* image, int height, int width)
     }
 
 
-    for (int x = 0; x < width; x++)
+    for (int y = 0; y < height; y++)
     {
-        for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++)
         {
             int index = (y * width + x) * 3;
             char log[64];
@@ -95,8 +95,8 @@ Image processPng(char* image, int height, int width)
     }
     fclose(f);
 
-    //free(pal);
-    //free(gfx);
+
+
     return (Image){1,pal,gfx,(Vector2){width,height},immage,1};
 
 }
@@ -110,7 +110,6 @@ int main()
 
   error = lodepng_decode24_file(&image, &width, &height, "ass.png");
   if(error) TRACELOG(LOG_ERROR,"error %u: %s\n", error, lodepng_error_text(error));
-  TRACELOG(LOG_ALL,"%c",image);
 
 
 
