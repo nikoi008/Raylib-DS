@@ -1708,11 +1708,11 @@ int GetTouchPointCount(void)
 };
 
 //https://github.com/blocksds/sdk/blob/master/examples/input/gesture_recognition/source/main.cpp ??ftodo compare
-void SetGesturesEnabled(unsigned int flags);            // Enable a set of gestures using flags
+/*void SetGesturesEnabled(unsigned int flags);            // Enable a set of gestures using flags
 bool IsGestureDetected(unsigned int gesture);           // Check if a gesture have been detected
 int GetGestureDetected(void);                           // Get latest detected gesture
 float GetGestureHoldDuration(void);                     // Get gesture hold time in seconds
 Vector2 GetGestureDragVector(void);                     // Get gesture drag vector
 float GetGestureDragAngle(void);                        // Get gesture drag angle
 Vector2 GetGesturePinchVector(void);                    // Get gesture pinch delta
-float GetGesturePinchAngle(void);
+float GetGesturePinchAngle(void);*/

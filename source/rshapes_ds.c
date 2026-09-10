@@ -1,5 +1,5 @@
-#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/core/libs/libnds/include/gl2d.h"
-#include "../../../../../../msys64/opt/wonderful/thirdparty/blocksds/core/libs/libnds/include/nds/arm9/video.h"
+#include <gl2d.h>
+#include <nds/arm9/video.h>
 #include "rcore_ds.h"
 #include <nds.h>
 #include "rshapes_ds.h"
