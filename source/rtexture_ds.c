@@ -172,10 +172,12 @@ Image LoadImageAnim(const char* filename, int frames)
 }
 Image processPPM(unsigned char* fileData,int dataSize)
 {
-    glImage image[1];
+    glImage *image;
+    image = malloc(sizeof(glImage));
     u8 *gfx;
     u16 *pal;
     Vector2 size;
+    int palTotal = 0;
     if (fileData != NULL)
     {
         printf("data ok");
@@ -208,7 +210,6 @@ Image processPPM(unsigned char* fileData,int dataSize)
 
 
 
-        int palTotal = 0;
         for (int i = idx; i < dataSize; i += 3)
         {
 
@@ -261,6 +262,46 @@ Image processPPM(unsigned char* fileData,int dataSize)
 
 
     }
+
+    /*FILE* fa;
+    fa = fopen("palette log.txt", "w");
+    if (fa == NULL)
+    {
+        printf("fat erra");
+    }
+    for (int i = 0; i < palTotal; i++)
+    {
+        char log[64];
+        snprintf(log,sizeof(log),"pal %d, %u\n",i,pal[i]);
+        fputs(log,fa);
+    }
+    fclose(fa);
+
+
+       FILE* f;
+        f = fopen("gfx log.txt", "w");
+        if (f == NULL)
+        {
+            printf("fat erra");
+        }
+
+
+        for (int y = 0; y < size.y; y++)
+        {
+            for (int x = 0; x < size.y; x++)
+            {
+                int index = (y * size.x + x) * 3;
+                char log[64];
+                snprintf(log,sizeof(log),"%u",gfx[y * (int)size.x + x]);
+                fputs(log,f);
+                if (x == size.x - 1)
+                {
+                    fputs("\n",f);
+                }
+            }
+        }
+        fclose(f);*/
+
     return (Image){1,pal,gfx,size,image,1};
 
 }
