@@ -1,13 +1,13 @@
 
  #include <nds.h>
 #include "rcore_ds.h"
-#include <math.h>
+//#include <math.h>
 #include <gl2d.h>
 #include "rshapes_ds.h"
 int textureID;
 
 
-Vector2 getImageSize(char* buffer)
+Vector2 getImageSize(const char* buffer)
 {
     Vector2 size;
     int bufferPlace = 0;
@@ -22,7 +22,7 @@ Vector2 getImageSize(char* buffer)
     }
 
 
-    size.x = atoi(bH);
+    size.x = (float)atoi(bH);
     //printf("\n\n%f \n\n",size.x);
 
 
@@ -35,15 +35,15 @@ Vector2 getImageSize(char* buffer)
         bufferPlace++;
         bWPlace++;
     }
-    size.y = atoi(bW);
+    size.y = (float)atoi(bW);
     //printf("\n\n%f \n\n",size.y);
 
     return size;
 }
-Image LoadImage(char* loc)
+Image LoadImage(const char* loc)
 {
     int datasize;
-    char* data = LoadFileData(loc,&datasize);
+    unsigned char* data = LoadFileData(loc,&datasize);
 
     return LoadImageFromMemory(GetFileExtension(loc),data,datasize);
 
@@ -54,120 +54,50 @@ Image LoadImageRaw(const char *fileName, int width, int height, int format, int 
 
     return LoadImage(fileName); // todo later
 }
+void printPalette(u16* pal, int count)
+{
+    printf("\n [PRINTPALETTE]: count %d",count);
+    for (int i = 0; i < count; i++)
+    {
+        printf("\nPAL %d %04X",i,pal[i]);
+    }
+    printf("\n");
+}
 
+void printGfx(u8* gfx, Vector2 size)
+{
+    for (int height = 0; height < (int)size.y; height++)
+    {
+        for (int width = 0; width < (int)size.x; width++)
+        {
+            printf("%d",gfx[width * height + width]);
+        }
+
+    }
+
+}
 Image LoadImageAnim(const char* filename, int frames)
 {
     int dataSize = 0;
-    u8 *gfx;
-    u16 *pal;
-    Vector2 size;
+    //u8 *gfx;
+    //u16 *pal;
+    //Vector2 size;
     unsigned char *fileData = LoadFileData(filename, &dataSize);
     if (fileData != NULL)
     {
 
-        pal = malloc(sizeof(u16) * 255);
-
-
-        int idx = 0;
-        int newlines = 0;
-        while (newlines < 1 && idx < dataSize) {
-            if (fileData[idx] == '\n') newlines++;
-            idx++;
-        }
-        char buffer[64];
-        int bIdx = 0;
-        while (newlines < 2 && idx < dataSize)
-        {
-            buffer[bIdx] = fileData[idx];
-            bIdx++;
-            if (fileData[idx] == '\n') newlines++;
-            idx++;
-        }
-        size = getImageSize(buffer);
-
-        gfx = malloc(sizeof(u8) * (int)size.x * (int)size.y);
-        while (newlines < 3 && idx < dataSize) {
-            if (fileData[idx] == '\n') newlines++;
-            idx++;
-        }
-
-
-
-        int palTotal = 0;
-        for (int i = idx; i < dataSize; i += 3)
-        {
-
-            u16 r5 = fileData[i] >> 3;
-            u16 g5 = fileData[i + 1] >> 3;
-            u16 b5 = fileData[i + 2] >> 3;
-
-            u16 col = ARGB16(1, r5, g5, b5);
-
-            bool found = false;
-            for (int p = 0; p < palTotal; p++)
-            {
-                if (pal[p] == col)
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                if (palTotal <= 256)
-                {
-                    pal[palTotal] = col;
-                    palTotal++; //todo
-
-                }
-            }
-        }
-        //TRACELOG(LOG_ALL, "%d cols", palTotal);
-
-        for (int i = 0; i < palTotal; i++ )
-        {
-            printf("%x\n", pal[i]);
-        }
-        int gfxPos = 0;
-        for (int i = idx; i < dataSize;i+= 3)
-        {
-
-            u16 r5 = fileData[i] >> 3;
-            u16 g5 = fileData[i + 1] >> 3;
-            u16 b5 = fileData[i + 2] >> 3;
-
-            u16 col = ARGB16(1, r5, g5, b5);
-
-            for (int j = 0; j < palTotal;j++)
-            {
-                if (col == pal[j])
-                {
-                    gfx[gfxPos] =j;
-                    gfxPos++;
-                    break;
-                }
-            }
-        }
-        for (int i = 0; i < gfxPos; i++)
-        {
-            printf("%x",gfx[i]);
-        }
-
-
+        Image I = LoadImageFromMemory(GetFileExtension(filename),fileData,dataSize);
         glImage* fImages = malloc(sizeof(glImage) * frames);
-
-
-         //pushes to vram
-
-
         UnloadFileData(fileData);
         // /free(gfx);
-        return (Image){1,pal,gfx,size,fImages,frames};
+        printPalette(I.pal,I.colors);
+        printGfx(I.gfx, I.size);
+        return (Image){I.pal,I.gfx,I.size,fImages,frames};
     }
     else
     {
         TRACELOG(LOG_ALL, "failed to load");
+        return (Image){0};
     }
 }
 Image processPPM(unsigned char* fileData,int dataSize)
@@ -178,7 +108,7 @@ Image processPPM(unsigned char* fileData,int dataSize)
     u16 *pal;
     Vector2 size;
     int palTotal = 0;
-    if (fileData != NULL)
+   if (fileData != NULL)
     {
         printf("data ok");
         pal = malloc(sizeof(u16) * 255);
@@ -301,8 +231,7 @@ Image processPPM(unsigned char* fileData,int dataSize)
             }
         }
         fclose(f);*/
-
-    return (Image){1,pal,gfx,size,image,1};
+    return (Image){pal,gfx,size,image,1,palTotal};
 
 }
 #include "lodepng.h"
@@ -348,61 +277,16 @@ Image processPng(char* image, int height, int width)
             }
         }
     }
-    /*printf("palette");
-    FILE* fa;
-    fa = fopen("palette log.txt", "w");
-    if (fa == NULL)
-    {
-        printf("fat erra");
-    }
-    for (int i = 0; i < palTotal; i++)
-    {
-        char log[64];
-        snprintf(log,sizeof(log),"pal %d, %u\n",i,pal[i]);
-        fputs(log,fa);
-    }
-    fclose(fa);
-*/
-
-   /*FILE* f;
-    f = fopen("gfx log.txt", "w");
-    if (f == NULL)
-    {
-        printf("fat erra");
-    }
-
-
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            int index = (y * width + x) * 3;
-            char log[64];
-            snprintf(log,sizeof(log),"%u",gfx[y * width + x]);
-            fputs(log,f);
-            if (x == width - 1)
-            {
-                fputs("\n",f);
-            }
-        }
-    }
-    fclose(f);
-*/
-
-
-    return (Image){1,pal,gfx,(Vector2){width,height},immage,1};
+    return (Image){pal,gfx,(Vector2){width,height},immage,1,palTotal};
 }
-Image LoadImageFromMemory(const char *fileType,  const unsigned char *fileData, int dataSize)
+Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *fileData, int dataSize)
 {
-        //free(pal);
-        //printf("\n\n FILENAME IS %s\n\n\n",fileType);
-        //printf()
+
         if (strcmp(fileType,".png") == 0)
         {
             unsigned error;
             unsigned char* image = 0;
             unsigned width, height;
-            printf("JUST TOOK IN A PNG FUILE");
 
             error = lodepng_decode24(&image, &width, &height,fileData,dataSize);
             if(error) TRACELOG(LOG_ERROR,"error %u: %s\n", error, lodepng_error_text(error));
@@ -410,29 +294,17 @@ Image LoadImageFromMemory(const char *fileType,  const unsigned char *fileData, 
 
             return processPng(image,height,width);
         }
-        if (IsFileExtension(fileType,".ppm") == 0)
+        if(strcmp(fileType, ".ppm") == 0)
         {
-            printf("jus took in a ppm");
             return processPPM(fileData,dataSize);
             UnloadFileData(fileData);
         }
 
-        //{
-           // TRACELOG(LOG_ERROR,"ERROR: FILETYPE NOT SUPPORTED");
-            //return (Image){-21209420};
-       // }
         UnloadFileData(fileData);
-        //uint16_t texcoords[4] = {0, 0, (int)size.x,(int)size.y};
-        //glImage image[1];
-        // glLoadSpriteSet(image,1,texcoords,GL_RGB256,size.x, size.y,TEXGEN_TEXCOORD,palTotal,pal,gfx); pushes to vram
-        //free(pal);
-        //free(gfx);
-        //return (Image){1,pal,gfx,size,image,1};
 }
 
 Image LoadImageFromTexture(Texture2D texture);//todo see how this can be done
 
-//Image LoadImageFromScreen(void); screenshot then as tileset?
 
 void UnloadImage(Image image)
 {
@@ -487,7 +359,6 @@ Texture2D LoadTextureFromImage(Image i)
 {
     Texture2D t;
     t.i = i;
-
     uint16_t texcoords[4] = {0, 0, t.i.size.x,t.i.size.y};
     //glImage image[1];
     glLoadSpriteSet(t.i.image,1,texcoords,GL_RGB256,t.i.size.x, t.i.size.y,TEXGEN_TEXCOORD,256,t.i.pal,t.i.gfx);
@@ -497,6 +368,7 @@ Texture2D LoadTextureFromImage(Image i)
 Texture2D LoadTextureAnimFromImage(Image im)
 {
     Texture2D t;
+    printf("\n\n\n TOTAL FRAMS %d",im.frames);
     uint16_t texcoords[4] = {0, 0, im.size.x, im.size.y / im.frames};
     for (int i = 0; i < im.frames; i++)
     {

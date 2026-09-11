@@ -12,17 +12,18 @@
 
 typedef struct
 {
-    int id;
     u16 *pal;
     u8* gfx;
     Vector2 size;
     glImage* image;
     int frames;
+    int colors;
 }Image;
 
 typedef struct
 {
     Image i;
+    int id;
     int rot;
     int scale;
     int pos;
@@ -31,10 +32,10 @@ typedef struct
 void UnloadTextureAnim(Texture2D texture);
 Texture2D LoadTextureAnimFromImage(Image im);
 void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tint);
-Vector2 getImageSize(char* buffer);
-Image LoadImage(char* loc);
+Vector2 getImageSize(const char* buffer);
+Image LoadImage(const char* loc);
 Image LoadImageAnim(const char* filename, int frames);
-Image LoadImageFromMemory(const char *fileType, const unsigned char *fileData, int dataSize);
+Image LoadImageFromMemory(const unsigned char *fileType, const unsigned char *fileData, int dataSize);
 
 void UnloadImage(Image image);
 bool ExportImage(Image image);

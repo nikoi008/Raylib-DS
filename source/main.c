@@ -3,7 +3,7 @@
 #include "lodepng.h"
 #define BLACK (Color){0,0,0}
 #define TO5BITS >>3 //useless macro go brrr
-    
+
 int main()
 {
     InitWindow(256,192,"w");
@@ -11,11 +11,11 @@ int main()
 
 
 
-    /*Image i = LoadImage("ass.png");
+    Image i = LoadImage("ass.png");
     Texture2D t = LoadTextureFromImage(i);
 
-    Image r = LoadImage("raylib.png");
-    Texture2D rt = LoadTextureFromImage(r);*/
+    Image r = LoadImage("p.png");
+    Texture2D rt = LoadTextureFromImage(r);
 
     Image p = LoadImage("1.ppm");
     Texture2D pe = LoadTextureFromImage(p);
@@ -26,15 +26,17 @@ int main()
     //Image r = processPng(imgR,height,width);
     //Texture2D tR = LoadTextureFromImage(r);
     printf("texture loaded");
-    printf("\n\n\n%s\n\n\n",GetFileExtension("raylib.png")); //INCLUDES THE DOT (".png")
+    Image anim = LoadImageAnim("p.ppm",2);
+    Texture2D animT = LoadTextureAnimFromImage(anim);
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(BLACK);
-        //DrawTexture(t,0,0,BLACK);
-        //DrawTexture(rt,100,0,BLACK);
-        DrawTexture(pe,100,100,BLACK);
-        printf("\n raylib.png exists: %d",FileExists("raylib.png"));
+        DrawTexture(t,0,0,BLACK);
+        DrawTexture(rt,100,0,BLACK);
+        DrawTexture(pe,50,100,BLACK);
+        DrawTextureAnim(animT,2,100 ,100 ,BLACK);
+        DrawTextureRec(t,(Rectangle){4,4,21,4},(Vector2){50,50},BLACK);
         static bool ran = false;
 
 
@@ -43,5 +45,5 @@ int main()
 
     }
 
-    
+
 }
