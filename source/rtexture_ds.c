@@ -4,8 +4,6 @@
 //#include <math.h>
 #include <gl2d.h>
 #include "rshapes_ds.h"
-int textureID;
-
 
 Vector2 getImageSize(const char* buffer)
 {
@@ -237,10 +235,10 @@ Image processPPM(unsigned char* fileData,int dataSize)
 #include "lodepng.h"
 
 #define TO5BITS >>3 //useless macro go brrr
-Image processPng(char* image, int height, int width)
+Image processPng(unsigned char* image, int height, int width)
 {
-    if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); return (Image){0};}
-    if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); return (Image){0} ;}
+    if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); /*return (Image){0};*/}
+    if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); /*return (Image){0} ;*/}
 
     glImage *immage = malloc(sizeof(glImage));
     u16* pal = malloc(sizeof(u16) * 256);
@@ -292,7 +290,7 @@ Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *f
             if(error) TRACELOG(LOG_ERROR,"error %u: %s\n", error, lodepng_error_text(error));
             UnloadFileData(fileData);
 
-            return processPng(image,height,width);
+            return processPng(image,(int)height,(int)width);
         }
         if(strcmp(fileType, ".ppm") == 0)
         {
@@ -341,16 +339,12 @@ Image GenImagePerlinNoise(int width, int height, int offsetX, int offsetY, float
 Image GenImageCellular(int width, int height, int tileSize);                                       // Generate image: cellular algorithm, bigger tileSize means bigger cells
 Image GenImageText(int width, int height, const char *text);
 
-/*
- *texture2d
- *Image i
- *rotscalepos*/
+
 Texture2D LoadTexture(const char* filename)
 {
     Texture2D t;
     t.i = LoadImage(filename);
     uint16_t texcoords[4] = {0, 0, t.i.size.x,t.i.size.y};
-    //glImage image[1];
     glLoadSpriteSet(t.i.image,1,texcoords,GL_RGB256,t.i.size.x, t.i.size.y,TEXGEN_TEXCOORD,256,t.i.pal,t.i.gfx);
     return t;
 }
@@ -359,9 +353,11 @@ Texture2D LoadTextureFromImage(Image i)
 {
     Texture2D t;
     t.i = i;
+    t.id = malloc(sizeof(int) * 1);
     uint16_t texcoords[4] = {0, 0, t.i.size.x,t.i.size.y};
     //glImage image[1];
-    glLoadSpriteSet(t.i.image,1,texcoords,GL_RGB256,t.i.size.x, t.i.size.y,TEXGEN_TEXCOORD,256,t.i.pal,t.i.gfx);
+    t.id[0] = glLoadSpriteSet(t.i.image,1,texcoords,GL_RGB256,t.i.size.x, t.i.size.y,TEXGEN_TEXCOORD,256,t.i.pal,t.i.gfx);
+    TRACELOG(LOG_INFO,"LOADED TEXTURE ID %d FRAMES %d \n",t.id,i.frames);
     return t;
 }
 
@@ -369,23 +365,27 @@ Texture2D LoadTextureAnimFromImage(Image im)
 {
     Texture2D t;
     printf("\n\n\n TOTAL FRAMS %d",im.frames);
-    uint16_t texcoords[4] = {0, 0, im.size.x, im.size.y / im.frames};
+    t.id = malloc(sizeof(int) * im.frames);
+    uint16_t texcoords[4] = {0, 0, (uint16_t)im.size.x, (uint16_t)im.size.y / (uint16_t)im.frames};
     for (int i = 0; i < im.frames; i++)
     {
         u8* minigfx = malloc(im.size.x * (im.size.y / im.frames));
         memcpy(minigfx, im.gfx + (int)(im.size.x * (im.size.y / im.frames) * i), im.size.x * (im.size.y / im.frames));
 
 
-        textureID = glLoadSpriteSet(&im.image[i], 1, texcoords, GL_RGB256, im.size.x, im.size.y / im.frames, TEXGEN_TEXCOORD, 256, im.pal, minigfx);
-
+        t.id[i] = glLoadSpriteSet(&im.image[i], 1, texcoords, GL_RGB256, im.size.x, im.size.y / im.frames, TEXGEN_TEXCOORD, 256, im.pal, minigfx);
+        printf("TEXTURE ID %d",*t.id);
         free(minigfx);
     }
-    t.i = im;
+    //t.i = im;
     return t;
 }
 void UnloadTexture(Texture2D texture)
 {
     UnloadImage(texture.i);
+    TRACELOG(LOG_INFO,"UNLOADING TEXUTRE %d \n",texture.id);
+    glDeleteTextures(1,texture.id);
+
 }
 
 void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tint)
@@ -416,7 +416,14 @@ void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color
 void UnloadTextureAnim(Texture2D texture)
 {
     //glDeleteTextures(1, &ruins_texture_id); todo unload texture ids
+    for (int i = 0; i < texture.i.frames; i++)
+    {
+        TRACELOG(LOG_INFO,"DELETING TEXTURE ID %d",texture.id[i]);
+        glDeleteTextures(texture.i.frames,&texture.id[i]);
+    }
+
     free(texture.i.image);
     free(texture.i.gfx);
     free(texture.i.pal);
+    free(texture.id);
 }

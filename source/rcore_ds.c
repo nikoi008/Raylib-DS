@@ -205,10 +205,10 @@ void EndDrawing()
     glEnd2D();
     glFlush(0);
     u32 currentTicks = cpuGetTiming();
-    u32 elapsed = currentTicks - DS.lastTicks;
-    DS.lastTicks = currentTicks;
+    //u32 elapsed = currentTicks - DS.lastTicks;
+    //DS.lastTicks = currentTicks;
    // DS.frameTime = (float)elapsed / BUS_CLOCK; todo use integers
-    UpdateSounds();
+   // UpdateSounds(); this is broken todo fix
 }
 
 float GetFrameTime()

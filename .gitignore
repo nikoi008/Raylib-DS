@@ -65,3 +65,4 @@ template.nds
 *.png
 source/includes.zip
 test suite/test suite.zip
+*.txt

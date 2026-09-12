@@ -23,10 +23,9 @@ typedef struct
 typedef struct
 {
     Image i;
-    int id;
+    int* id;
     int rot;
     int scale;
-    int pos;
 
 }Texture2D;
 void UnloadTextureAnim(Texture2D texture);
