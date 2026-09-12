@@ -77,20 +77,15 @@ void printGfx(u8* gfx, Vector2 size)
 Image LoadImageAnim(const char* filename, int frames)
 {
     int dataSize = 0;
-    //u8 *gfx;
-    //u16 *pal;
-    //Vector2 size;
     unsigned char *fileData = LoadFileData(filename, &dataSize);
     if (fileData != NULL)
     {
 
         Image I = LoadImageFromMemory(GetFileExtension(filename),fileData,dataSize);
-        glImage* fImages = malloc(sizeof(glImage) * frames);
         UnloadFileData(fileData);
-        // /free(gfx);
         printPalette(I.pal,I.colors);
         printGfx(I.gfx, I.size);
-        return (Image){I.pal,I.gfx,I.size,fImages,frames};
+        return (Image){I.pal,I.gfx,I.size,frames};
     }
     else
     {
@@ -100,8 +95,6 @@ Image LoadImageAnim(const char* filename, int frames)
 }
 Image processPPM(unsigned char* fileData,int dataSize)
 {
-    glImage *image;
-    image = malloc(sizeof(glImage));
     u8 *gfx;
     u16 *pal;
     Vector2 size;
@@ -190,46 +183,7 @@ Image processPPM(unsigned char* fileData,int dataSize)
 
 
     }
-
-    /*FILE* fa;
-    fa = fopen("palette log.txt", "w");
-    if (fa == NULL)
-    {
-        printf("fat erra");
-    }
-    for (int i = 0; i < palTotal; i++)
-    {
-        char log[64];
-        snprintf(log,sizeof(log),"pal %d, %u\n",i,pal[i]);
-        fputs(log,fa);
-    }
-    fclose(fa);
-
-
-       FILE* f;
-        f = fopen("gfx log.txt", "w");
-        if (f == NULL)
-        {
-            printf("fat erra");
-        }
-
-
-        for (int y = 0; y < size.y; y++)
-        {
-            for (int x = 0; x < size.y; x++)
-            {
-                int index = (y * size.x + x) * 3;
-                char log[64];
-                snprintf(log,sizeof(log),"%u",gfx[y * (int)size.x + x]);
-                fputs(log,f);
-                if (x == size.x - 1)
-                {
-                    fputs("\n",f);
-                }
-            }
-        }
-        fclose(f);*/
-    return (Image){pal,gfx,size,image,1,palTotal};
+    return (Image){pal,gfx,size,1,palTotal};
 
 }
 #include "lodepng.h"
@@ -240,9 +194,7 @@ Image processPng(unsigned char* image, int height, int width)
     if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); /*return (Image){0};*/}
     if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); /*return (Image){0} ;*/}
 
-    glImage *immage = malloc(sizeof(glImage));
     u16* pal = malloc(sizeof(u16) * 256);
-    //pal[0] = ARGB16(1,image[0],image[1],image[2]);
     pal[0] = ARGB16(1, image[0]TO5BITS, image[1]TO5BITS, image[2]TO5BITS);
     int palTotal = 1;
 
@@ -275,7 +227,7 @@ Image processPng(unsigned char* image, int height, int width)
             }
         }
     }
-    return (Image){pal,gfx,(Vector2){width,height},immage,1,palTotal};
+    return (Image){pal,gfx,(Vector2){width,height},1};
 }
 Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *fileData, int dataSize)
 {
@@ -294,8 +246,12 @@ Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *f
         }
         if(strcmp(fileType, ".ppm") == 0)
         {
-            return processPPM(fileData,dataSize);
+            //UnloadFileData(fileData);
+            Image image = processPPM(fileData,dataSize);
             UnloadFileData(fileData);
+            return image;
+
+
         }
 
         UnloadFileData(fileData);
@@ -309,7 +265,7 @@ void UnloadImage(Image image)
     free(image.gfx);
     free(image.pal);
     image.size.x = 0; image.size.y = 0;
-    free(image.image);
+   // free(image.image);
 }
 
 bool ExportImage(Image image)
@@ -343,20 +299,21 @@ Image GenImageText(int width, int height, const char *text);
 Texture2D LoadTexture(const char* filename)
 {
     Texture2D t;
-    t.i = LoadImage(filename);
-    uint16_t texcoords[4] = {0, 0, t.i.size.x,t.i.size.y};
-    glLoadSpriteSet(t.i.image,1,texcoords,GL_RGB256,t.i.size.x, t.i.size.y,TEXGEN_TEXCOORD,256,t.i.pal,t.i.gfx);
+    Image i = LoadImage(filename);
+    uint16_t texcoords[4] = {0, 0, i.size.x,i.size.y};
+    glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD,256,i.pal,i.gfx);
     return t;
 }
 
 Texture2D LoadTextureFromImage(Image i)
 {
     Texture2D t;
-    t.i = i;
+    //t.i = i;
     t.id = malloc(sizeof(int) * 1);
-    uint16_t texcoords[4] = {0, 0, t.i.size.x,t.i.size.y};
+    uint16_t texcoords[4] = {0, 0, i.size.x,i.size.y};
     //glImage image[1];
-    t.id[0] = glLoadSpriteSet(t.i.image,1,texcoords,GL_RGB256,t.i.size.x, t.i.size.y,TEXGEN_TEXCOORD,256,t.i.pal,t.i.gfx);
+    glImage *image = malloc(sizeof(image) * i.frames);
+    t.id[0] = glLoadSpriteSet(image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD,256,i.pal,i.gfx);
     TRACELOG(LOG_INFO,"LOADED TEXTURE ID %d FRAMES %d \n",t.id,i.frames);
     return t;
 }
@@ -366,6 +323,8 @@ Texture2D LoadTextureAnimFromImage(Image im)
     Texture2D t;
     printf("\n\n\n TOTAL FRAMS %d",im.frames);
     t.id = malloc(sizeof(int) * im.frames);
+    t.frames = im.frames;
+    t.image = malloc(sizeof(glImage) * im.frames);
     uint16_t texcoords[4] = {0, 0, (uint16_t)im.size.x, (uint16_t)im.size.y / (uint16_t)im.frames};
     for (int i = 0; i < im.frames; i++)
     {
@@ -373,7 +332,7 @@ Texture2D LoadTextureAnimFromImage(Image im)
         memcpy(minigfx, im.gfx + (int)(im.size.x * (im.size.y / im.frames) * i), im.size.x * (im.size.y / im.frames));
 
 
-        t.id[i] = glLoadSpriteSet(&im.image[i], 1, texcoords, GL_RGB256, im.size.x, im.size.y / im.frames, TEXGEN_TEXCOORD, 256, im.pal, minigfx);
+        t.id[i] = glLoadSpriteSet(&t.image[i], 1, texcoords, GL_RGB256, im.size.x, im.size.y / im.frames, TEXGEN_TEXCOORD, 256, im.pal, minigfx);
         printf("TEXTURE ID %d",*t.id);
         free(minigfx);
     }
@@ -382,7 +341,7 @@ Texture2D LoadTextureAnimFromImage(Image im)
 }
 void UnloadTexture(Texture2D texture)
 {
-    UnloadImage(texture.i);
+    //UnloadImage(texture.i);
     TRACELOG(LOG_INFO,"UNLOADING TEXUTRE %d \n",texture.id);
     glDeleteTextures(1,texture.id);
 
@@ -390,21 +349,21 @@ void UnloadTexture(Texture2D texture)
 
 void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tint)
 {
-    if (frame < 0 || frame >= texture.i.frames) frame = 0;
-    glSprite(posX, posY, GL_FLIP_NONE, &texture.i.image[frame]);
+    if (frame < 0 || frame >= texture.frames) frame = 0;
+    glSprite(posX, posY, GL_FLIP_NONE, &texture.image[frame]);
 }
 
 
 
 void DrawTexture(Texture2D texture, int posX, int posY, Color tint)
 {
-    glSprite(posX, posY, GL_FLIP_NONE, texture.i.image);
+    glSprite(posX, posY, GL_FLIP_NONE, texture.image);
 }
 void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color tint)
 {
     uint16_t texcoords[4] = {source.x,source.y,source.x + source.width,source.y + source.height};
 
-    glImage subImage = *texture.i.image;
+    glImage subImage = *texture.image;
     subImage.u_off = texcoords[0];
     subImage.v_off = texcoords[1];
     subImage.width = source.width;
@@ -416,14 +375,12 @@ void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color
 void UnloadTextureAnim(Texture2D texture)
 {
     //glDeleteTextures(1, &ruins_texture_id); todo unload texture ids
-    for (int i = 0; i < texture.i.frames; i++)
+    for (int i = 0; i < texture.frames; i++)
     {
         TRACELOG(LOG_INFO,"DELETING TEXTURE ID %d",texture.id[i]);
-        glDeleteTextures(texture.i.frames,&texture.id[i]);
+        glDeleteTextures(texture.frames,&texture.id[i]);
     }
 
-    free(texture.i.image);
-    free(texture.i.gfx);
-    free(texture.i.pal);
+
     free(texture.id);
 }

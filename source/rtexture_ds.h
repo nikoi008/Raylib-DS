@@ -15,15 +15,16 @@ typedef struct
     u16 *pal;
     u8* gfx;
     Vector2 size;
-    glImage* image;
     int frames;
     int colors;
 }Image;
 
 typedef struct
 {
-    Image i;
-    int* id;
+    //Image i;
+    glImage* image;
+    int frames;
+    int *id;
     int rot;
     int scale;
 
