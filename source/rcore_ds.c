@@ -208,7 +208,7 @@ void EndDrawing()
     //u32 elapsed = currentTicks - DS.lastTicks;
     //DS.lastTicks = currentTicks;
    // DS.frameTime = (float)elapsed / BUS_CLOCK; todo use integers
-   // UpdateSounds(); this is broken todo fix
+    UpdateSounds();
 }
 
 float GetFrameTime()

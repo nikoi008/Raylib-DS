@@ -126,9 +126,10 @@ Sound LoadSound(const char *fileName)
 Sound LoadSoundFromWave(Wave wave)
 {
 
-    Sound s;
+    Sound s = {};
     s.w = wave;
     s.state->id = -99;
+
     return (Sound){s.state,wave};
 };
 
@@ -252,11 +253,12 @@ void UpdateSounds() //todo rename and restructure
 {
     for (int i = 0; i < MAX_SOUNDS_PLAYING; i++)
     {
+        if (playingSounds[i] == NULL){ continue;}
         if (!playingSounds[i]->state->playing || !playingSounds[i]->state->pendingHandoff) return;
         if (playingSounds[i]->state->channel < 0) return;
-
         if (!IPC_Sound->chan[playingSounds[i]->state->channel].busy)
         {
+            TRACELOG(LOG_INFO,"[UPTSOUNDS] SOUND %d PLAYING",i);
             SoundInfo full = playingSounds[i]->w.s;
             full.loop = 1;
 

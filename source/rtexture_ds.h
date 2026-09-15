@@ -24,7 +24,7 @@ typedef struct
     //Image i;
     glImage* image;
     int frames;
-    int *id;
+    int id;
     int rot;
     int scale;
 
@@ -33,7 +33,7 @@ void UnloadTextureAnim(Texture2D texture);
 Texture2D LoadTextureAnimFromImage(Image im);
 void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tint);
 Vector2 getImageSize(const char* buffer);
-Image LoadImage(const char* loc);
+Image LoadImage(const unsigned char* loc);
 Image LoadImageAnim(const char* filename, int frames);
 Image LoadImageFromMemory(const unsigned char *fileType, const unsigned char *fileData, int dataSize);
 

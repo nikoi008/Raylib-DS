@@ -38,7 +38,7 @@ Vector2 getImageSize(const char* buffer)
 
     return size;
 }
-Image LoadImage(const char* loc)
+Image LoadImage(const unsigned char* loc)
 {
     int datasize;
     unsigned char* data = LoadFileData(loc,&datasize);
@@ -61,7 +61,6 @@ void printPalette(u16* pal, int count)
     }
     printf("\n");
 }
-
 void printGfx(u8* gfx, Vector2 size)
 {
     for (int height = 0; height < (int)size.y; height++)
@@ -83,8 +82,8 @@ Image LoadImageAnim(const char* filename, int frames)
 
         Image I = LoadImageFromMemory(GetFileExtension(filename),fileData,dataSize);
         UnloadFileData(fileData);
-        printPalette(I.pal,I.colors);
-        printGfx(I.gfx, I.size);
+       // printPalette(I.pal,I.colors);
+       // printGfx(I.gfx, I.size);
         return (Image){I.pal,I.gfx,I.size,frames};
     }
     else
@@ -309,15 +308,16 @@ Texture2D LoadTextureFromImage(Image i)
 {
     Texture2D t;
     //t.i = i;
-    t.id = malloc(sizeof(int) * 1);
+    //t.id = malloc(sizeof(int) * 1);
     uint16_t texcoords[4] = {0, 0, i.size.x,i.size.y};
     //glImage image[1];
-    glImage *image = malloc(sizeof(image) * i.frames);
-    t.id[0] = glLoadSpriteSet(image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD,256,i.pal,i.gfx);
+    t.image = malloc(sizeof(glImage) * i.frames);
+
+    t.id = glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD,256,i.pal,i.gfx);
     TRACELOG(LOG_INFO,"LOADED TEXTURE ID %d FRAMES %d \n",t.id,i.frames);
     return t;
 }
-
+/*
 Texture2D LoadTextureAnimFromImage(Image im)
 {
     Texture2D t;
@@ -338,15 +338,26 @@ Texture2D LoadTextureAnimFromImage(Image im)
     }
     //t.i = im;
     return t;
+}*/
+
+Texture2D LoadTextureAnimFromImage(Image im)
+{
+    Texture2D t = {0};
+    t.frames = im.frames;
+    t.image = malloc(sizeof(glImage) * im.frames);
+    int spriteH = im.size.y / im.frames;
+
+    //t.id = malloc(sizeof(int));
+    t.id = glLoadTileSet(t.image,im.size.x, spriteH,im.size.x, im.size.y,GL_RGB256,im.size.x, im.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256, im.pal, im.gfx);
+    TRACELOG(LOG_INFO,"ANIM TEXTURE ID %d\n",t.id);
+    return t;
 }
 void UnloadTexture(Texture2D texture)
 {
     //UnloadImage(texture.i);
     TRACELOG(LOG_INFO,"UNLOADING TEXUTRE %d \n",texture.id);
-    glDeleteTextures(1,texture.id);
-
+    glDeleteTextures(1,&texture.id);
 }
-
 void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tint)
 {
     if (frame < 0 || frame >= texture.frames) frame = 0;
@@ -377,10 +388,7 @@ void UnloadTextureAnim(Texture2D texture)
     //glDeleteTextures(1, &ruins_texture_id); todo unload texture ids
     for (int i = 0; i < texture.frames; i++)
     {
-        TRACELOG(LOG_INFO,"DELETING TEXTURE ID %d",texture.id[i]);
-        glDeleteTextures(texture.frames,&texture.id[i]);
+        TRACELOG(LOG_INFO,"DELETING TEXTURE ID %d",texture.id);
+        glDeleteTextures(texture.frames,&texture.id);
     }
-
-
-    free(texture.id);
 }
