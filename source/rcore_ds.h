@@ -135,7 +135,8 @@ typedef struct
 //----------------------------------------------------------------------------------
 void TRACELOG(int logType, const char *text, ...);
 void InitWindow(int width, int height, const char* title);
-
+void BeginMode2D(Camera2D camera);
+void EndMode2D();
     void CloseWindow(void);                                     // Close window and unload OpenGL context
     bool WindowShouldClose(void);                               // Check if application should close (KEY_ESCAPE pressed or windows close icon clicked)
     bool IsWindowReady(void);                                   // Check if window has been initialized successfully

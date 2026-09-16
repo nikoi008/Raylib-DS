@@ -31,6 +31,26 @@ static LoadFileTextCallback loadFileText = NULL;    // LoadFileText callback fun
 static SaveFileTextCallback saveFileText = NULL;    // SaveFileText callback function pointer
 int GetScreenWidth(void){return 256;}
 
+void BeginMode2D(Camera2D camera)
+{
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glTranslatef32(-camera.target.x,-camera.target.x,0);
+    if (camera.rotation != 0)
+    {
+        glRotateZi(degreesToAngle(camera.rotation));
+    }
+    glScalef32(floattof32(camera.zoom),floattof32(camera.zoom),inttof32(1));
+
+    glTranslatef32(camera.offset.x,camera.offset.y,0);
+}
+
+void EndMode2D()
+{
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix(1);
+}
+
 void TRACELOG(int logType, const char *text, ...)
 {
 
@@ -84,7 +104,8 @@ void InitWindow(int width, int height, const char* title)
 
 void CloseWindow(void)
 {
-    //? i guess unload everything
+
+    powerOff(PM_SYSTEM_PWR);
 }
 
 bool WindowShouldClose(void)
