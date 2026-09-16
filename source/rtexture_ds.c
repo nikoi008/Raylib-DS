@@ -228,6 +228,7 @@ Image processPng(unsigned char* image, int height, int width)
             }
         }
     }
+    free(image);
     return (Image){pal,gfx,(Vector2){width,height},1};
 }
 Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *fileData, int dataSize)
@@ -235,11 +236,10 @@ Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *f
 
         if (strcmp(fileType,".png") == 0)
         {
-            unsigned error;
             unsigned char* image = 0;
             unsigned width, height;
 
-            error = lodepng_decode24(&image, &width, &height,fileData,dataSize);
+            unsigned error = lodepng_decode24(&image, &width, &height,fileData,dataSize);
             if(error) TRACELOG(LOG_ERROR,"error %u: %s\n", error, lodepng_error_text(error));
             UnloadFileData(fileData);
 
@@ -247,7 +247,6 @@ Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *f
         }
         if(strcmp(fileType, ".ppm") == 0)
         {
-            //UnloadFileData(fileData);
             Image image = processPPM(fileData,dataSize);
             UnloadFileData(fileData);
             return image;
@@ -258,7 +257,7 @@ Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *f
         UnloadFileData(fileData);
 }
 
-Image LoadImageFromTexture(Texture2D texture);//todo see how this can be done
+Image LoadImageFromTexture(Texture2D texture);
 
 
 void UnloadImage(Image image)
