@@ -81,10 +81,12 @@ Image LoadImageAnim(const char* filename, int frames)
     {
 
         Image I = LoadImageFromMemory(GetFileExtension(filename),fileData,dataSize);
-        UnloadFileData(fileData);
-       // printPalette(I.pal,I.colors);
-       // printGfx(I.gfx, I.size);
+        //UnloadFileData(fileData); uncommenting this crashes the program, but only for pngs
+       printPalette(I.pal,I.colors);
+       printGfx(I.gfx, I.size);
+
         return (Image){I.pal,I.gfx,I.size,frames};
+
     }
     else
     {
@@ -317,28 +319,7 @@ Texture2D LoadTextureFromImage(Image i)
     TRACELOG(LOG_INFO,"LOADED TEXTURE ID %d FRAMES %d \n",t.id,i.frames);
     return t;
 }
-/*
-Texture2D LoadTextureAnimFromImage(Image im)
-{
-    Texture2D t;
-    printf("\n\n\n TOTAL FRAMS %d",im.frames);
-    t.id = malloc(sizeof(int) * im.frames);
-    t.frames = im.frames;
-    t.image = malloc(sizeof(glImage) * im.frames);
-    uint16_t texcoords[4] = {0, 0, (uint16_t)im.size.x, (uint16_t)im.size.y / (uint16_t)im.frames};
-    for (int i = 0; i < im.frames; i++)
-    {
-        u8* minigfx = malloc(im.size.x * (im.size.y / im.frames));
-        memcpy(minigfx, im.gfx + (int)(im.size.x * (im.size.y / im.frames) * i), im.size.x * (im.size.y / im.frames));
 
-
-        t.id[i] = glLoadSpriteSet(&t.image[i], 1, texcoords, GL_RGB256, im.size.x, im.size.y / im.frames, TEXGEN_TEXCOORD, 256, im.pal, minigfx);
-        printf("TEXTURE ID %d",*t.id);
-        free(minigfx);
-    }
-    //t.i = im;
-    return t;
-}*/
 
 Texture2D LoadTextureAnimFromImage(Image im)
 {
@@ -348,6 +329,7 @@ Texture2D LoadTextureAnimFromImage(Image im)
     int spriteH = im.size.y / im.frames;
 
     //t.id = malloc(sizeof(int));
+    TRACELOG(LOG_INFO,"BEFORE LOADTILESET \n");
     t.id = glLoadTileSet(t.image,im.size.x, spriteH,im.size.x, im.size.y,GL_RGB256,im.size.x, im.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256, im.pal, im.gfx);
     TRACELOG(LOG_INFO,"ANIM TEXTURE ID %d\n",t.id);
     return t;

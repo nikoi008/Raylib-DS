@@ -7,6 +7,14 @@
 #include <gl2d.h>
 
 #include "rtexture_ds.h"
+
+typedef struct {
+    Vector2 offset;         // Camera offset (screen space offset from window origin)
+    Vector2 target;         // Camera target (world space target point that is mapped to screen space offset)
+    float rotation;         // Camera rotation in degrees (pivots around target)
+    float zoom;             // Camera zoom (scaling around target), must not be set to 0, set to 1.0f for no scale
+} Camera2D;
+
 typedef void (*TraceLogCallback)(int logLevel, const char *text, va_list args); // Logging: Redirect trace log messages
 typedef unsigned char *(*LoadFileDataCallback)(const char *fileName, int *dataSize); // FileIO: Load binary data
 typedef bool (*SaveFileDataCallback)(const char *fileName, const void *data, int dataSize); // FileIO: Save binary data
@@ -60,10 +68,7 @@ typedef struct
     int cleanthisuplater;
 }VrDeviceInfo;
 
-typedef struct
-{
-    int cleanthisuplater;
-}Camera2D;
+
 
 typedef struct
 {
@@ -191,9 +196,7 @@ void InitWindow(int width, int height, const char* title);
     // Drawing-related functions
     void ClearBackground(Color color);                          // Set background color (framebuffer clear color)
     void BeginDrawing(void);                                    // Setup canvas (framebuffer) to start drawing
-    void EndDrawing(void);                                      // End canvas drawing and swap buffers (double buffering)
-    void BeginMode2D(Camera2D camera);                          // Begin 2D mode with custom camera (2D)
-    void EndMode2D(void);                                       // Ends 2D mode with custom camera
+    void EndDrawing(void);                                      // End canvas drawing and swap buffers (double buffering)// Begin 2D mode with custom camera (2D)// Ends 2D mode with custom camera
     void BeginMode3D(Camera3D camera);                          // Begin 3D mode with custom camera (3D)
     void EndMode3D(void);                                       // Ends 3D mode and returns to default 2D orthographic mode
     void BeginTextureMode(RenderTexture2D target);              // Begin drawing to render texture
