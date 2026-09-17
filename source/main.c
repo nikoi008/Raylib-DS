@@ -59,12 +59,13 @@ int findValInString(char *data, char *find, int *offset)
     stringLocation += strlen(find);
     char buffer[64];
     int index = 0;
-    while (stringLocation[index] != ' ' && stringLocation[index] != '\n')
+    while (stringLocation[index] != ' ' && stringLocation[index] != '\n' && stringLocation[index] != '\0')
     {
         buffer[index] = stringLocation[index];
         index++;
     }
     *offset = (stringLocation - data) + index;
+    buffer[index] = '\n';
     return atoi(buffer);
 
 
@@ -73,7 +74,6 @@ int findValInString(char *data, char *find, int *offset)
 void parse()
 {
     Font f;
-    int dataSize;
     char* fileData = LoadFileText("test.fnt");
     int offset = 0;
     f.f.face = findStringRetString(fileData, "face=\"",&offset);
