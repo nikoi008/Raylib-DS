@@ -302,7 +302,7 @@ Texture2D LoadTexture(const char* filename)
     Image i = LoadImage(filename);
     t = LoadTextureFromImage(i);
     uint16_t texcoords[4] = {0, 0, i.size.x,i.size.y};
-    glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD,256,i.pal,i.gfx);
+    glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256,i.pal,i.gfx);
     return t;
 }
 
@@ -314,8 +314,7 @@ Texture2D LoadTextureFromImage(Image i)
     uint16_t texcoords[4] = {0, 0, i.size.x,i.size.y};
     //glImage image[1];
     t.image = malloc(sizeof(glImage) * i.frames);
-
-    t.id = glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD,256,i.pal,i.gfx);
+    t.id = glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256,i.pal,i.gfx);
     TRACELOG(LOG_INFO,"LOADED TEXTURE ID %d FRAMES %d \n",t.id,i.frames);
     return t;
 }
@@ -350,6 +349,8 @@ void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tin
 
 void DrawTexture(Texture2D texture, int posX, int posY, Color tint)
 {
+    //rgb = (tint.r,tint.g,tint.b);
+    glColor(ARGB16(1,tint.r >> 3, tint.g >> 3, tint.b >> 3));
     glSprite(posX, posY, GL_FLIP_NONE, texture.image);
 }
 void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color tint)
@@ -361,8 +362,9 @@ void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color
     subImage.v_off = texcoords[1];
     subImage.width = source.width;
     subImage.height = source.height;
-
+    glColor(ARGB16(1,tint.r >> 3, tint.g >> 3, tint.b >> 3));
     glSprite((int)position.x, (int)position.y, GL_FLIP_NONE, &subImage);
+
 }
 
 void UnloadTextureAnim(Texture2D texture)
