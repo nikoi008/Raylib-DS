@@ -353,19 +353,41 @@ void DrawTexture(Texture2D texture, int posX, int posY, Color tint)
     glColor(ARGB16(1,tint.r >> 3, tint.g >> 3, tint.b >> 3));
     glSprite(posX, posY, GL_FLIP_NONE, texture.image);
 }
+
+
+
+
 void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color tint)
 {
-    uint16_t texcoords[4] = {source.x,source.y,source.x + source.width,source.y + source.height};
 
-    glImage subImage = *texture.image;
-    subImage.u_off = texcoords[0];
-    subImage.v_off = texcoords[1];
-    subImage.width = source.width;
-    subImage.height = source.height;
-    glColor(ARGB16(1,tint.r >> 3, tint.g >> 3, tint.b >> 3));
-    glSprite((int)position.x, (int)position.y, GL_FLIP_NONE, &subImage);
+    glColor(ARGB16(1, tint.r >> 3, tint.g >> 3, tint.b >> 3));
 
+    int x1 = (int)position.x;
+    int y1 = (int)position.y;
+    int x2 = x1 + (int)source.width;
+    int y2 = y1 + (int)source.height;
+
+    int u1 = texture.image->u_off + (int)source.x;
+    int u2 = u1 + (int)source.width;
+    int v1 = texture.image->v_off + (int)source.y;
+    int v2 = v1 + (int)source.height;
+
+    if (texture.image->textureID != gCurrentTexture)
+    {
+        glBindTexture(GL_TEXTURE_2D,texture.image->textureID);
+        gCurrentTexture = texture.image->textureID;
+    }
+
+    glBegin(GL_QUADS);
+
+    glTexCoord2i(u1, v1); glVertex2v16(x1, y1);
+    glTexCoord2i(u1, v2); glVertex2v16(x1, y2);
+    glTexCoord2i(u2, v2); glVertex2v16(x2, y2);
+    glTexCoord2i(u2, v1); glVertex2v16(x2, y1);
+
+    glEnd();
 }
+
 
 void UnloadTextureAnim(Texture2D texture)
 {
