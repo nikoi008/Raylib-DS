@@ -389,6 +389,44 @@ void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color
 }
 
 
+void DrawTextureRecAndScale(Texture2D texture, Rectangle source, Vector2 position, Color tint,s32 sx,s32 sy)
+{
+
+    glColor(ARGB16(1, tint.r >> 3, tint.g >> 3, tint.b >> 3));
+
+    int x1 = (int)position.x;
+    int y1 = (int)position.y;
+    int x2 = x1 + (int)source.width;
+    int y2 = y1 + (int)source.height;
+
+    int u1 = texture.image->u_off + (int)source.x;
+    int u2 = u1 + (int)source.width;
+    int v1 = texture.image->v_off + (int)source.y;
+    int v2 = v1 + (int)source.height;
+
+    if (texture.image->textureID != gCurrentTexture)
+    {
+        glBindTexture(GL_TEXTURE_2D,texture.image->textureID);
+        gCurrentTexture = texture.image->textureID;
+    }
+    glPushMatrix();
+
+    //lTranslatef32(inttof32((int)position.x), inttof32((int)position.y), 0);
+    glScalef32(sx, sx, 1 << 12);
+
+    glBegin(GL_QUADS);
+
+    glTexCoord2i(u1, v1); glVertex2v16(x1, y1);
+    glTexCoord2i(u1, v2); glVertex2v16(x1, y2);
+    glTexCoord2i(u2, v2); glVertex2v16(x2, y2);
+    glTexCoord2i(u2, v1); glVertex2v16(x2, y1);
+
+    glEnd();
+
+
+    glPopMatrix(1);
+}
+
 void UnloadTextureAnim(Texture2D texture)
 {
     //glDeleteTextures(1, &ruins_texture_id); todo unload texture ids

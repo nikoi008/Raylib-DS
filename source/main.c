@@ -16,7 +16,6 @@ typedef struct
     int yOffset;
     int xAdvance;
 }Glyph;
-
 typedef struct
 {
     char* face;
@@ -25,14 +24,13 @@ typedef struct
     char* fileName;
     int chars;
 }FontInfo;
-
 typedef struct
 {
     Glyph *glyph;
     FontInfo f;
     Texture2D tex;
 }Font;
-// ie something="bananas" returns "bananas"
+#include "fontDefault.h"
 char* findStringRetString(char *data,char *find,int *offset)
 {
     char* stringLocation = strstr(&data[*offset],find);
@@ -52,8 +50,8 @@ char* findStringRetString(char *data,char *find,int *offset)
     strcpy(result,buffer);
     //printf("%s",result);
     return result;
-}
-// ie input "something=" returns 42
+}// ie something="bananas" returns "bananas"
+
 int findValInString(char *data, char *find, int *offset)
 {
     char* stringLocation = strstr(data + *offset,find);
@@ -66,12 +64,37 @@ int findValInString(char *data, char *find, int *offset)
         index++;
     }
     *offset = (stringLocation - data) + index;
-    buffer[index] = '\n';
+    buffer[index] = '\0';
     return atoi(buffer);
+}// ie input "something=" returns 42
+/*Font LoadFontDefault()
+{
+    Font f;
+    int offset = 0;
+    f.f.face = findStringRetString(defaultFontData, "face=\"",&offset);
 
+    f.f.fileName = findStringRetString(defaultFontData,"file=\"",&offset);
+    Image i = LoadImageFromMemory(".png",defaultFontPng,defaultFontpngSize);
+    f.tex = LoadTextureFromImage(i);
+    f.f.chars = findValInString(defaultFontData,"chars count=",&offset);
 
-}
-//pretty slow, best to load at start
+    f.glyph = malloc(sizeof(Glyph) * f.f.chars);
+
+    for (int i = 0 ; i < f.f.chars; i++)
+    {
+
+        f.glyph[i].id = findValInString(defaultFontData,"char id=",&offset);
+        f.glyph[i].x = findValInString(defaultFontData,"x=",&offset);
+        f.glyph[i].y = findValInString(defaultFontData,"y=",&offset);
+        f.glyph[i].width = findValInString(defaultFontData,"width=",&offset);
+        f.glyph[i].height = findValInString(defaultFontData,"height=",&offset);
+        f.glyph[i].xOffset = findValInString(defaultFontData,"xoffset=",&offset);
+        f.glyph[i].yOffset = findValInString(defaultFontData,"yoffset=",&offset);
+        f.glyph[i].xAdvance = findValInString(defaultFontData,"xadvance=",&offset);
+    }
+
+    return f;
+}*/
 Font LoadFont(char* name)
 {
     Font f;
@@ -99,8 +122,9 @@ Font LoadFont(char* name)
     }
 
     return f;
-}
-int drawChar(Font* f,Vector2 pos,char c,Color col) // returns position of character drawn
+}//pretty slow, best to load at start
+
+int drawChar(Font* f,Vector2 pos,char c,Color col,float size)
 {
     int i;
     for (i = 0; i < f->f.chars; i++)
@@ -109,43 +133,48 @@ int drawChar(Font* f,Vector2 pos,char c,Color col) // returns position of charac
     }
     pos.x += f->glyph[i].xOffset;
     pos.y += f->glyph[i].yOffset;
-    DrawTextureRec(f->tex,(Rectangle){f->glyph[i].x ,f->glyph[i].y, f->glyph[i].width, f->glyph[i].height},pos, col);
+
+    DrawTextureRecAndScale(f->tex,(Rectangle){f->glyph[i].x ,f->glyph[i].y, f->glyph[i].width, f->glyph[i].height},pos, col,floattof32(size),floattof32(size));
     return i;
 
-}
-void drawString(Font* f, Vector2 pos, char* s,Color col)
+}// returns position of character drawn
+void drawString(Font* f, Vector2 pos, char* s,Color col, int spacing,float size)
 {
 
     int cursorX = pos.x;
     int cursorY = pos.y;
-    for (int i = 0; i < strlen(s); i++)
+    int len =  strlen(s);
+    for (int i = 0; i < len ; i++)
     {
-        int id = drawChar(f,(Vector2){cursorX,cursorY},s[i],col);
+        int id = drawChar(f,(Vector2){cursorX,cursorY},s[i],col,size);
         cursorX += f->glyph[id].xAdvance;
+        cursorX += spacing;
     }
 }
+
+
+void DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint)
+{
+    drawString(&font,position,text,tint,(int)spacing,fontSize);
+
+
+}
+
 int main()
 {
     InitWindow(256,192,"w");
-
     Font f = LoadFont("test.fnt");
-    Font m = LoadFont("mono.fnt");
+    Font m = LoadFont("default.fnt");
+    Font j = LoadFont("mono.fnt");
+
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(BLACK);
-        //DrawTexture(f.tex,0,0,(Color){0,0,0});
-        drawChar(&f,(Vector2){10,10},'c',(Color){0,0,0});
-        drawString(&f,(Vector2){10,40},"tHe quick brown fox",(Color){255,0,0});
-        drawString(&f,(Vector2){10,80},"jumps over tHe lazY",(Color){255,255,255});
-        drawString(&f,(Vector2){10,120},"dog",(Color){0,255,120});
-        drawString(&m,(Vector2){0,160},"jetbrains mono yummers",(Color){255,255,255});
-        static long int i = 0;
-        i++;
+        DrawTextEx(f,"hello",(Vector2){10,10},3.2f,1,(Color){255,0,0});
+
         EndDrawing();
 
-
     }
-
 
 }
