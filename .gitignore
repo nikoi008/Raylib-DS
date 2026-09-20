@@ -66,3 +66,4 @@ template.nds
 source/includes.zip
 test suite/test suite.zip
 *.txt
+qodana.yaml

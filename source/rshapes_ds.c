@@ -14,7 +14,7 @@ void DrawPixel(int posX, int posY, Color color)
 };
 void DrawPixelV(Vector2 position, Color color)
 {
-    glPutPixel(position.x,position.y, RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+    glPutPixel((int)position.x,(int)position.y, RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
 };
 
 void DrawLine(int startPosX, int startPosY, int endPosX, int endPosY, Color color)
@@ -23,7 +23,7 @@ void DrawLine(int startPosX, int startPosY, int endPosX, int endPosY, Color colo
 };
 void DrawLineV(Vector2 startPos, Vector2 endPos, Color color)
 {
-    glLine(startPos.x,startPos.y,endPos.x,endPos.y, RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+    glLine((int) startPos.x,(int) startPos.y,(int) endPos.x,(int) endPos.y, RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
 };
 void DrawLineEx(Vector2 startPos, Vector2 endPos, float thick, Color color)
 {
@@ -67,6 +67,7 @@ void DrawLineStrip(const Vector2 *points, int pointCount, Color color)
 };
 void DrawLineDashed(Vector2 startPos, Vector2 endPos, int dashSize, int spaceSize, Color color)
 {
+    //todo dont vibecode
     float dx = endPos.x - startPos.x;
     float dy = endPos.y - startPos.y;
     float totalLen = sqrtf(dx*dx + dy*dy);
@@ -133,7 +134,7 @@ void DrawCircle(int centerX, int centerY, float radius, Color color)
 }
 void DrawCircleV(Vector2 center, float radius, Color color)
 {
-    DrawCircle(center.x,center.y,radius,color);
+    DrawCircle((int)center.x,(int)center.y,radius,color);
 };
 void DrawCircleSector(Vector2 center, float radius, float startAngle, float endAngle, int segments, Color color)
 {
@@ -211,7 +212,7 @@ void DrawCircleLines(int centerX, int centerY, float radius, Color color)
 }
 void DrawCircleLinesV(Vector2 center, float radius, Color color)
 {
-    DrawCircleLines(center.x,center.y,radius,color);
+    DrawCircleLines((int)center.x,(int)center.y,radius,color);
 };
 void DrawCircleGradient(Vector2 center, float radius, Color inner, Color outer)
 {
@@ -222,7 +223,7 @@ void DrawCircleGradient(Vector2 center, float radius, Color inner, Color outer)
         int x2 = (int)center.x + f32toint(mulf32(cosLerp(degreesToAngle(i)),radiusF32));
         int y1 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i + 10)),radiusF32));
         int y2 = (int)center.y + f32toint(mulf32(sinLerp(degreesToAngle(i)),radiusF32));
-        glTriangleFilledGradient(center.x,center.y,x1,y1,x2,y2,RGB15(inner.r >> 3, inner.g >> 3, inner.b >> 3),RGB15(outer.r >> 3, outer.g >> 3, outer.b >> 3),RGB15(outer.r >> 3, outer.g >> 3, outer.b >> 3));
+        glTriangleFilledGradient((int)center.x,(int)center.y,x1,y1,x2,y2,RGB15(inner.r >> 3, inner.g >> 3, inner.b >> 3),RGB15(outer.r >> 3, outer.g >> 3, outer.b >> 3),RGB15(outer.r >> 3, outer.g >> 3, outer.b >> 3));
     }
 }
 
@@ -269,11 +270,11 @@ void DrawEllipseV(Vector2 center, float radiusH, float radiusV, Color color)
 }
 void DrawEllipse(int centerX,int centerY, float radiusH, float radiusV, Color color)
 {
-    DrawEllipseV((Vector2){centerX,centerY},radiusH,radiusV,color);
+    DrawEllipseV((Vector2){(float)centerX,(float)centerY},radiusH,radiusV,color);
 };
 void DrawEllipseLines(int centerX, int centerY, float radiusH, float radiusV, Color color)
 {
-    DrawEllipseV((Vector2){centerX,centerY},radiusH,radiusV,color);
+    DrawEllipseV((Vector2){(float)centerX,(float)centerY},radiusH,radiusV,color);
 
 };
 void drawEllipsePoints(int cx,int cy, int x, int y, Color color)
@@ -295,7 +296,7 @@ void DrawEllipseLinesV(Vector2 center, float radiusH, float radiusV, Color color
     xChange = (int)radiusV * (int)radiusV * (1 - 2 * (int)radiusH);
     yChange = (int)radiusH * (int)radiusH;
     ellipseError = 0;
-    stoppingX = twoBSquare * radiusH;
+    stoppingX = twoBSquare * (int)radiusH;
     stoppingY = 0;
 
     while (stoppingX >= stoppingY)
@@ -320,7 +321,7 @@ void DrawEllipseLinesV(Vector2 center, float radiusH, float radiusV, Color color
     yChange = (int)radiusH * (int)radiusH * (1 - 2 * (int)radiusV);
     ellipseError = 0;
     stoppingX =  0;
-    stoppingY = twoASquare * radiusV;
+    stoppingY = twoASquare * (int)radiusV;
 
     while (stoppingX <= stoppingY)
     {
@@ -344,8 +345,8 @@ void DrawEllipseLinesV(Vector2 center, float radiusH, float radiusV, Color color
 
 
 
-void DrawRing(Vector2 center, float innerRadius, float outerRadius, float startAngle, float endAngle, int segments, Color color);
-void DrawRingLines(Vector2 center, float innerRadius, float outerRadius, float startAngle, float endAngle, int segments, Color color);
+//void DrawRing(Vector2 center, float innerRadius, float outerRadius, float startAngle, float endAngle, int segments, Color color);
+//void DrawRingLines(Vector2 center, float innerRadius, float outerRadius, float startAngle, float endAngle, int segments, Color color);
 
 
 
@@ -355,7 +356,7 @@ void DrawRectangle(int posX, int posY, int width, int height, Color color)
 };
 void DrawRectangleV(Vector2 position, Vector2 size, Color color)
 {
-    glBoxFilled(position.x,position.y,position.x + size.x,position.y + size.y,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+    glBoxFilled((int)position.x,(int)position.y,(int)position.x + (int)size.x,(int)position.y + (int)size.y,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
 };
 void DrawRectangleRec(Rectangle rec, Color color)
 {
@@ -406,11 +407,11 @@ void DrawRectangleRoundedLinesEx(Rectangle rec, float roundness, int segments, f
 
 void DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color)
 {
-    glTriangleFilled(v1.x,v1.y,v2.x,v2.y,v3.x,v3.y,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+    glTriangleFilled((int)v1.x,(int)v1.y,(int)v2.x,(int)v2.y,(int)v3.x,(int)v3.y,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
 };
 void DrawTriangleLines(Vector2 v1, Vector2 v2, Vector2 v3, Color color)
 {
-    glTriangle(v1.x,v1.y,v2.x,v2.y,v3.x,v3.y,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+    glTriangle((int)v1.x,(int)v1.y,(int)v2.x,(int)v2.y,(int)v3.x,(int)v3.y,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
 };
 void DrawTriangleFan(const Vector2 *points, int pointCount, Color color)
 {
@@ -457,7 +458,7 @@ void DrawPoly(Vector2 center, int sides, float radius, float rotation, Color col
 
         int y1 = (int)(center.y) + f32toint(mulf32(sinLerp(centralAngle),radiusF32));
         int y2 = (int)(center.y) + f32toint(mulf32(sinLerp(centralAngle + angleStep),radiusF32));
-        glTriangleFilled(center.x,center.y,x1,y1,x2,y2,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
+        glTriangleFilled((int)center.x,(int)center.y,x1,y1,x2,y2,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
         centralAngle += angleStep;
 
     }
@@ -520,7 +521,7 @@ bool CheckCollisionPointRec(Vector2 point, Rectangle rec)
 {
     bool collision = false;
 
-    if ((point.x >= rec.x) && (point.x < (rec.x + rec.width)) && (point.y >= rec.y) && (point.y < (rec.y + rec.height))) collision = true;
+    if (((int)point.x >= (int)rec.x) && ((int)point.x < (int)(rec.x + rec.width)) && ((int)point.y >= (int)rec.y) && ((int)point.y < ((int)rec.y + (int)rec.height))) collision = true;
 
     return collision;
 }
@@ -722,14 +723,14 @@ Rectangle GetCollisionRec(Rectangle rec1, Rectangle rec2)
 {
     Rectangle overlap = { 0 };
 
-    float left = (rec1.x > rec2.x)? rec1.x : rec2.x;
-    float right1 = rec1.x + rec1.width;
-    float right2 = rec2.x + rec2.width;
-    float right = (right1 < right2)? right1 : right2;
-    float top = (rec1.y > rec2.y)? rec1.y : rec2.y;
-    float bottom1 = rec1.y + rec1.height;
-    float bottom2 = rec2.y + rec2.height;
-    float bottom = (bottom1 < bottom2)? bottom1 : bottom2;
+    int  left = (rec1.x > rec2.x)? rec1.x : rec2.x;
+    int  right1 = rec1.x + rec1.width;
+    int right2 = rec2.x + rec2.width;
+    int right = (right1 < right2)? right1 : right2;
+    int top = (rec1.y > rec2.y)? rec1.y : rec2.y;
+    int bottom1 = rec1.y + rec1.height;
+    int bottom2 = rec2.y + rec2.height;
+    int bottom = (bottom1 < bottom2)? bottom1 : bottom2;
 
     if ((left < right) && (top < bottom))
     {
