@@ -30,7 +30,7 @@ typedef struct
     FontInfo f;
     Texture2D tex;
 } Font;
-
+Font GetFontDefault(void);
 Font LoadFont(char* name);
 void UnloadFont(Font font);
 int drawChar(Font* f, Vector2 pos, char c, Color col, float size);

@@ -7,7 +7,7 @@
 #include <gl2d.h>
 
 #include "rtexture_ds.h"
-
+#include "rtext_ds.h"
 typedef struct {
     Vector2 offset;         // Camera offset (screen space offset from window origin)
     Vector2 target;         // Camera target (world space target point that is mapped to screen space offset)
@@ -59,6 +59,7 @@ typedef struct
     u16 exitKey;
     touchPosition touchpos;
     bool audioOn;
+    Font fontDefault;
 }dsCore;
 
 extern dsCore DS;

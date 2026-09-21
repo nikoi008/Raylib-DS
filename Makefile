@@ -18,6 +18,9 @@ GAME_SUBTITLE	?= Built with BlocksDS
 GAME_AUTHOR	?= blocksds.skylyrac.net
 GAME_ICON	?= $(BLOCKSDS)/sys/icon.gif
 
+# nitrofs dir
+NITROFSDIR	:= nitrofs
+
 # A compile_commands.json file is created if this is set to 1
 COMPDB		?= 0
 

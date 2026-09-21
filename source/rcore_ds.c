@@ -4,8 +4,10 @@
 #include "rcore_ds.h"
 #include <fat.h>
 #include <arm9/PA_General.h>
-#include <sys/stat.h> //todo put at top of file
+#include <sys/stat.h>
 #include <dirent.h>
+
+#include <filesystem.h>
 #include "raudio_ds.h"
 
 
@@ -100,6 +102,15 @@ void InitWindow(int width, int height, const char* title)
     DS.currentMainScreen = 0;
 
     DS.audioOn = false;
+
+    bool init_ok = nitroFSInit(NULL);
+    if (!init_ok)
+    {
+        perror("nitroFSInit()");
+    }
+
+    DS.fontDefault = GetFontDefault();
+
 }
 
 void CloseWindow(void)

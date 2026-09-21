@@ -1,35 +1,17 @@
 #include <nds.h>
 #include "rcore_ds.h"
 #include <stdlib.h>
-typedef struct
-{
-    int id;
-    int x;
-    int y;
-    int width;
-    int height;
-    int xOffset;
-    int yOffset;
-    int xAdvance;
-}Glyph;
-typedef struct
-{
-    char* face;
-    int size;
-    bool bold,italic;
-    char* fileName;
-    int chars;
-}FontInfo;
-typedef struct
-{
-    Glyph *glyph;
-    FontInfo f;
-    Texture2D tex;
-}Font;
+#include "rtext_ds.h"
+
 
 #define MAX_TEXT_BUFFER_LENGTH  1024
 #define MAX_TEXTSPLIT_COUNT  128
-#include "fontDefault.h"
+
+Font GetFontDefault(void)
+{
+    Font f = LoadFont("nitro:/default.fnt");
+    return f;
+}
 char* findStringRetString(char *data,char *find,int *offset)
 {
     char* stringLocation = strstr(&data[*offset],find);
@@ -139,7 +121,7 @@ void DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, f
 
 void DrawText(const char *text, int posX, int posY, int fontSize, Color color)
 {
-   // drawString(&font,(Vector2){posX,posY},text,color,1,fontSize); todo load default font
+    drawString(&DS.fontDefault,(Vector2){posX,posY},text,color,1,fontSize);
 }
 
 

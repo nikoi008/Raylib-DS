@@ -18,15 +18,16 @@ void DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, f
 int main()
 {
     InitWindow(256,192,"w");
-    Font f = LoadFont("test.fnt");
-    Font m = LoadFont("default.fnt");
-    Font j = LoadFont("mono.fnt");
+    Font f = LoadFont("nitro:/default.fnt");
+    //Font m = LoadFont("nitro/default.fnt");
+    //Font j = LoadFont("mono.fnt");
 
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(BLACK);
         DrawTextEx(f,"hello",(Vector2){10,10},3.2,1,(Color){255,0,0});
+        DrawText("hello world",100,100,1,(Color){80,80,80});
         EndDrawing();
     }
 
