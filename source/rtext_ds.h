@@ -1,6 +1,6 @@
 #ifndef RTEXTURES_DS_H
 #define RTEXTURES_DS_H
-
+#include "rtexture_ds.h"
 #include "rcore_ds.h"
 typedef struct
 {

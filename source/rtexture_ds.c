@@ -3,6 +3,8 @@
 #include "rcore_ds.h"
 //#include <math.h>
 #include <gl2d.h>
+#include <arm9/PA_General.h>
+
 #include "rshapes_ds.h"
 
 Vector2 getImageSize(const char* buffer)
@@ -41,7 +43,8 @@ Vector2 getImageSize(const char* buffer)
 Image LoadImage(const unsigned char* loc)
 {
     int datasize;
-    unsigned char* data = LoadFileData(loc,&datasize);
+
+    unsigned char* data = LoadFileData((const char*)loc,&datasize);
 
     return LoadImageFromMemory(GetFileExtension(loc),data,datasize);
 
@@ -184,6 +187,12 @@ Image processPPM(unsigned char* fileData,int dataSize)
 
 
     }
+    else
+    {
+        TRACELOG(LOG_ERROR,"PROCESSPPM: FILE DATA IS NULL");
+        return (Image){0};
+    }
+
     return (Image){pal,gfx,size,1,palTotal};
 
 }
@@ -229,7 +238,7 @@ Image processPng(unsigned char* image, int height, int width)
         }
     }
     free(image);
-    return (Image){pal,gfx,(Vector2){width,height},1};
+    return (Image){pal,gfx,(Vector2){(float)width,(float)height},1};
 }
 Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *fileData, int dataSize)
 {
@@ -268,32 +277,17 @@ void UnloadImage(Image image)
    // free(image.image);
 }
 
-bool ExportImage(Image image)
-{
-    //just reverse everything that i did in loadimage
-    return false;
-}
-
-bool ExportImageAsCode(Image image, const char* filename)
-{
-    for (int i = 0; i < sizeof(image.gfx) / sizeof(u8); i++)
-    {
-
-    }
-}
 
 
 
-
-Image GenImageColor(int width, int height, Color color);                                           // Generate image: plain color
-Image GenImageGradientLinear(int width, int height, int direction, Color start, Color end);        // Generate image: linear gradient, direction in degrees [0..360], 0=Vertical gradient
+                                      // Generate image: plain color// Generate image: linear gradient, direction in degrees [0..360], 0=Vertical gradient
 Image GenImageGradientRadial(int width, int height, float density, Color inner, Color outer);      // Generate image: radial gradient
 Image GenImageGradientSquare(int width, int height, float density, Color inner, Color outer);      // Generate image: square gradient
 Image GenImageChecked(int width, int height, int checksX, int checksY, Color col1, Color col2);    // Generate image: checked
 Image GenImageWhiteNoise(int width, int height, float factor);                                     // Generate image: white noise
 Image GenImagePerlinNoise(int width, int height, int offsetX, int offsetY, float scale);           // Generate image: perlin noise
 Image GenImageCellular(int width, int height, int tileSize);                                       // Generate image: cellular algorithm, bigger tileSize means bigger cells
-Image GenImageText(int width, int height, const char *text);
+//Image GenImageText(int width, int height, const char *text);
 
 
 Texture2D LoadTexture(const char* filename)
@@ -307,15 +301,16 @@ Texture2D LoadTexture(const char* filename)
 }
 
 Texture2D LoadTextureFromImage(Image i)
-{
+{   
     Texture2D t;
     //t.i = i;
     //t.id = malloc(sizeof(int) * 1);
     uint16_t texcoords[4] = {0, 0, i.size.x,i.size.y};
     //glImage image[1];
     t.image = malloc(sizeof(glImage) * i.frames);
-    t.id = glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256,i.pal,i.gfx);
+    t.id = glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD ,256,i.pal,i.gfx);
     TRACELOG(LOG_INFO,"LOADED TEXTURE ID %d FRAMES %d \n",t.id,i.frames);
+    t.frames = 1;
     return t;
 }
 
@@ -361,7 +356,7 @@ void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color
 {
 
     glColor(ARGB16(1, tint.r >> 3, tint.g >> 3, tint.b >> 3));
-
+    //todo there is a buffer that needs to be incremented in gl2d or else this goes in front of everything
     int x1 = (int)position.x;
     int y1 = (int)position.y;
     int x2 = x1 + (int)source.width;
@@ -393,7 +388,7 @@ void DrawTextureRecAndScale(Texture2D texture, Rectangle source, Vector2 positio
 {
 
     glColor(ARGB16(1, tint.r >> 3, tint.g >> 3, tint.b >> 3));
-
+    //todo there is a buffer that needs to be incremented in gl2d or else this goes in front of everything
     int x1 = (int)position.x;
     int y1 = (int)position.y;
     int x2 = x1 + (int)source.width;
@@ -436,3 +431,168 @@ void UnloadTextureAnim(Texture2D texture)
         glDeleteTextures(texture.frames,&texture.id);
     }
 }
+
+
+int isColInPal(Image *img, Color color) // returns index of color
+{
+    int convColor = ARGB16(1,color.r TO5BITS, color.g TO5BITS, color.b TO5BITS);
+    bool hasCol = false;
+    int colIndex = 0;
+    for (int i = 0; i < img->colors || hasCol == true; i++)
+    {
+        if (convColor == img->pal[i])
+        {
+            hasCol = true;
+            colIndex = i;
+        }
+    }
+    if (!hasCol)
+    {
+        img->pal[img->colors] = convColor;
+        img->colors++;
+        colIndex = img->colors;
+    }
+    return colIndex;
+}
+void ImageClearBackground(Image *dst, Color color)
+{
+
+    int colIndex = isColInPal(dst,color);
+    for (int y = 0; y < dst->size.y; y++)
+    {
+        for (int x = 0; x < dst->size.x; x++)
+        {
+            dst->gfx[y * (int)dst->size.x + x] = colIndex;
+        }
+    }
+};                                                // Clear image background with given color
+void ImageDrawPixel(Image *dst, int posX, int posY, Color color)
+{
+    int colIndex = isColInPal(dst,color);
+    if (posX < 0 || posX >= (int)dst->size.x || posY < 0 || posY >= (int)dst->size.y )return;
+    dst->gfx[posY * (int)dst->size.x + posX] = colIndex;
+};
+// Draw pixel within an image
+
+void ImageDrawPixelV(Image *dst, Vector2 position, Color color)
+{
+    if (position.x < 0 || position.x >= (int)dst->size.x || position.y < 0 || position.y >= (int)dst->size.y )return;
+    int colIndex = isColInPal(dst,color);
+    dst->gfx[(int)position.y * (int)dst->size.x + (int)position.x] = colIndex;
+};                                   // Draw pixel within an image (Vector version)
+void ImageDrawLine(Image *dst, int x0, int x1, int y0, int y1, Color color)
+{
+    //https://gist.github.com/bert/1085538
+    int colIndex = isColInPal(dst,color);
+    int dx =  abs (x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs (y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2; /* error value e_xy */
+
+    for (;;){  /* loop */
+        //setPixel (x0,y0);
+        if (!(y0 < 0 || y0 >= (int)dst->size.y || x0 < 0 || x0 >= (int)dst->size.x)) dst->gfx[y0 * (int)dst->size.x + x0] = colIndex;
+        if (x0 == x1 && y0 == y1) break;
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
+        if (e2 <= dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
+    }
+} // Draw line within an image
+    void ImageDrawLineV(Image *dst, Vector2 start, Vector2 end, Color color)
+{
+    ImageDrawLine(dst,start.x,start.y,end.x,end.y,color);
+};                          // Draw line within an image (Vector version)
+    void ImageDrawLineEx(Image *dst, Vector2 start, Vector2 end, int thick, Color color);              // Draw a line defining thickness within an image
+    void ImageDrawCircle(Image *dst, int centerX, int centerY, int radius, Color color)
+    {
+            //DrawCircleSector((Vector2){ (float)centerX, (float)centerY }, radius, 0, 360, 36, color);
+            int x = 0;
+            int y = (int)(radius);
+            int d = 3 - 2 * (int)(radius);
+
+            while (x <= y)
+            {
+
+                ImageDrawLine(dst,centerX - x, centerY + y,centerX + x, centerY + y,color);
+                ImageDrawLine(dst,centerX - x, centerY - y, centerX + x, centerY - y,color);
+                ImageDrawLine(dst,centerX - y, centerY + x, centerX + y, centerY + x,color);
+                ImageDrawLine(dst,centerX -y , centerY - x, centerX + y,centerY - x,color);
+
+                x++;
+                if(d< 0)
+                {
+                    d = d + 4 * x + 6;
+                }
+                else
+                {
+                    y = y - 1;
+                    d = d + 4 * (x - y) + 10;
+                }
+            }
+    };              // Draw a filled circle within an image
+    void ImageDrawCircleV(Image *dst, Vector2 center, int radius, Color color)
+    {
+        ImageDrawCircle(dst,(int)center.x,(int)center.y,radius,color);
+    };                        // Draw a filled circle within an image (Vector version)
+    void ImageDrawCircleLines(Image *dst, int centerX, int centerY, int radius, Color color)
+    {
+            int x = 0;
+            int y = (int)(radius);
+            int d = 3 - 2 * (int)(radius);
+
+            while (x <= y)
+            {
+                ImageDrawPixel(dst,centerX + x, centerY + y,color);
+                ImageDrawPixel(dst,centerX - x, centerY + y,color);
+                ImageDrawPixel(dst,centerX + x, centerY - y,color);
+                ImageDrawPixel(dst,centerX - x, centerY - y,color);
+                ImageDrawPixel(dst,centerX + y, centerY + x,color);
+                ImageDrawPixel(dst,centerX - y, centerY + x,color);
+                ImageDrawPixel(dst,centerX + y, centerY - x,color);
+                ImageDrawPixel(dst,centerX - y, centerY - x,color);
+
+                x++;
+                if(d< 0)
+                {
+                    d = d + 4 * x + 6;
+                }
+                else
+                {
+                    y = y - 1;
+                    d = d + 4 * (x - y) + 10;
+                }
+            }
+    };          // Draw circle outline within an image
+    void ImageDrawCircleLinesV(Image *dst, Vector2 center, int radius, Color color)
+    {
+        ImageDrawCircleLines(dst,(int)center.x,(int)center.y,radius,color);
+    };                   // Draw circle outline within an image (Vector version)
+    void ImageDrawRectangle(Image *dst, int posX, int posY, int width, int height, Color color)
+    {
+        for (int i = 0; i < height; i++)
+        {
+            ImageDrawLine(dst,posX,posY,posX + width,posY,color);
+        }
+    };       // Draw rectangle within an image
+    void ImageDrawRectangleV(Image *dst, Vector2 position, Vector2 size, Color color)
+    {
+        ImageDrawRectangle(dst,(int)position.x,(int)position.y,(int)size.x,(int)size.y,color);
+    };                 // Draw rectangle within an image (Vector version)
+    void ImageDrawRectangleRec(Image *dst, Rectangle rec, Color color)
+    {
+        ImageDrawRectangle(dst,rec.x,rec.y,rec.x + rec.width,rec.y + rec.height,color);
+    };                                // Draw rectangle within an image
+    void ImageDrawRectangleLines(Image *dst, Rectangle rec, int thick, Color color)
+    {
+        ImageDrawLine(dst,rec.x,rec.y,rec.x + rec.width,rec.y,color);
+        ImageDrawLine(dst,rec.x,rec.y,rec.x,rec.y + rec.height,color);
+        ImageDrawLine(dst,rec.x + rec.width,rec.y,rec.x + rec.width,rec.y + rec.height,color);
+        ImageDrawLine(dst,rec.x,rec.y + rec.height,rec.x + rec.width,rec.y + rec.height,color);
+    }
+    void ImageDrawTriangle(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color color);               // Draw triangle within an image
+    void ImageDrawTriangleEx(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color c1, Color c2, Color c3); // Draw triangle with interpolated colors within an image
+    void ImageDrawTriangleLines(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color color);          // Draw triangle outline within an image
+    void ImageDrawTriangleFan(Image *dst, const Vector2 *points, int pointCount, Color color);         // Draw a triangle fan defined by points within an image (first vertex is the center)
+    void ImageDrawTriangleStrip(Image *dst, const Vector2 *points, int pointCount, Color color);       // Draw a triangle strip defined by points within an image
+    void ImageDraw(Image *dst, Image src, Rectangle srcRec, Rectangle dstRec, Color tint);             // Draw a source image within a destination image (tint applied to source)
+    void ImageDrawText(Image *dst, const char *text, int posX, int posY, int fontSize, Color color);   // Draw text (using default font) within an image (destination)
+    void ImageDrawTextEx(Image *dst, Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint);
