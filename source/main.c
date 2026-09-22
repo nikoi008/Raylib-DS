@@ -87,14 +87,14 @@ void ImageClearBackground(Image *dst, Color color)
 void ImageDrawPixel(Image *dst, int posX, int posY, Color color)
 {
     int colIndex = isColInPal(dst,color);
-    if (posX > 0 || posX > (int)dst->size.x || posY > 0 || posY > (int)dst->size.y )return;
+    if (posX < 0 || posX >= (int)dst->size.x || posY < 0 || posY >= (int)dst->size.y )return;
     dst->gfx[posY * (int)dst->size.x + posX] = colIndex;
 };
 // Draw pixel within an image
 
 void ImageDrawPixelV(Image *dst, Vector2 position, Color color)
 {
-    if (position.x > 0 || position.x > (int)dst->size.x || position.y > 0 || position.y > (int)dst->size.y )return;
+    if (position.x < 0 || position.x >= (int)dst->size.x || position.y < 0 || position.y >= (int)dst->size.y )return;
     int colIndex = isColInPal(dst,color);
     dst->gfx[(int)position.y * (int)dst->size.x + (int)position.x] = colIndex;
 };                                   // Draw pixel within an image (Vector version)
@@ -108,8 +108,7 @@ void ImageDrawLine(Image *dst, int x0, int x1, int y0, int y1, Color color)
 
     for (;;){  /* loop */
         //setPixel (x0,y0);
-        if (y0 < 0 || y0 > (int)dst->size.y || x0 < 0 || x0 > (int)dst->size.x) continue;
-        dst->gfx[y0 * (int)dst->size.x + (int)x0] = colIndex;
+        if (!(y0 < 0 || y0 >= (int)dst->size.y || x0 < 0 || x0 >= (int)dst->size.x)) dst->gfx[y0 * (int)dst->size.x + x0] = colIndex;
         if (x0 == x1 && y0 == y1) break;
         e2 = 2 * err;
         if (e2 >= dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
