@@ -9,13 +9,13 @@
 
 typedef  struct
 {
-    SoundInfo s;
+   SoundInfo s;
     bool alias;
 }Wave;
 
 typedef struct
 {
-    //SoundInfo s;
+    SoundInfo s;
     int channel;
     bool playing;
     u32 pausedOffset;
@@ -31,8 +31,8 @@ typedef struct
     Wave w;
 } Sound;
 
-Sound *playingSounds[16] = {};
-
+//Sound *playingSounds[16] = {};
+SoundState *playingSounds[16] = {};
 uint32_t read32(const u8 *p)
 {
     return p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
@@ -50,7 +50,7 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
     Wave w;
     if (dat != NULL)
     {
-
+    
 
         w.s.data = &dat[44];
         w.s.size = read32(&dat[40]);
@@ -111,27 +111,20 @@ bool isWaveValid(Wave w)
 }
 
 
-Sound LoadSound(const char *fileName)
-{
-    Sound s;
-    s.w = LoadWave(fileName);
-    s.state->alias = false;
-    s.state->channel = -1;
-    s.state->playing = false;
-
-    s.state->id = -99;
-
-    return s;
-}
 Sound LoadSoundFromWave(Wave wave)
 {
+    SoundState *st = calloc(1,sizeof(SoundState));
+    st->s = wave.s;
+    st->alias = wave.alias;
+    st->channel = -1;
+    st->id = -99;
+    return (Sound){st};
+}
 
-    Sound s = {};
-    s.w = wave;
-    s.state->id = -99;
-
-    return (Sound){s.state,wave};
-};
+Sound LoadSound(const char *fileName)
+{
+    return LoadSoundFromWave(LoadWave(fileName));
+}
 
 bool IsSoundValid(Sound sound)
 {
@@ -201,7 +194,7 @@ void PlaySound(Sound sound)//how will this be passed by va;ue!?!??!
             if (playingSounds[i] != NULL) continue;
             else
             {
-                playingSounds[i] = &sound;
+                playingSounds[i] = sound.state;
                 sound.state->id = i;
                 break;
             }
@@ -218,35 +211,34 @@ void PlaySound(Sound sound)//how will this be passed by va;ue!?!??!
 void PauseSound(Sound sound)
 {
 
-    if (!playingSounds[sound.state->id]->state->playing || playingSounds[sound.state->id]->state->channel < 0) return;
+    if (!playingSounds[sound.state->id]->playing || playingSounds[sound.state->id]->channel < 0) return;
 
-    u32 elapsedTicks = cpuGetTiming() - playingSounds[sound.state->id]->state->startTick;
+    u32 elapsedTicks = cpuGetTiming() - playingSounds[sound.state->id]->startTick;
     float elapsedSeconds = (float)elapsedTicks / BUS_CLOCK;
 
-    int bytesPerSample = (playingSounds[sound.state->id]->w.s.format == AS_PCM_16BIT) ? 2 : 1;
-    u32 elapsedBytes = (u32)(elapsedSeconds * playingSounds[sound.state->id]->w.s.rate) * bytesPerSample;
+    int bytesPerSample = (sound.w.s.format == AS_PCM_16BIT) ? 2 : 1;
+    u32 elapsedBytes = (u32)(elapsedSeconds * sound.w.s.rate) * bytesPerSample;
 
-    playingSounds[sound.state->id]->state->pausedOffset += elapsedBytes;
-    playingSounds[sound.state->id]->state->pausedOffset %= playingSounds[sound.state->id]->w.s.size;
+    playingSounds[sound.state->id]->pausedOffset += elapsedBytes;
+    playingSounds[sound.state->id]->pausedOffset %= sound.w.s.size;
 
-    AS_SoundStop(playingSounds[sound.state->id]->state->channel);
-    playingSounds[sound.state->id]->state->playing = false;
-    playingSounds[sound.state->id]->state->pendingHandoff = false;
+    AS_SoundStop(playingSounds[sound.state->id]->channel);
+    playingSounds[sound.state->id]->playing = false;
+    playingSounds[sound.state->id]->pendingHandoff = false;
 }
 void ResumeSound(Sound sound)
 {
-    if (playingSounds[sound.state->id]->state->playing ||
-        playingSounds[sound.state->id]->state->pausedOffset >= playingSounds[sound.state->id]->w.s.size) return;
+    if (playingSounds[sound.state->id]->playing || playingSounds[sound.state->id]->pausedOffset >= sound.w.s.size) return;
 
-    SoundInfo tail = playingSounds[sound.state->id]->w.s;
-    tail.data = playingSounds[sound.state->id]->w.s.data + playingSounds[sound.state->id]->state->pausedOffset;
-    tail.size = playingSounds[sound.state->id]->w.s.size - playingSounds[sound.state->id]->state->pausedOffset;
+    SoundInfo tail = sound.w.s;
+    tail.data = sound.w.s.data + playingSounds[sound.state->id]->pausedOffset;
+    tail.size = sound.w.s.size - playingSounds[sound.state->id]->pausedOffset;
     tail.loop = 0;
 
-    playingSounds[sound.state->id]->state->channel = AS_SoundPlay(tail);
-    playingSounds[sound.state->id]->state->playing = true;
-    playingSounds[sound.state->id]->state->pendingHandoff = true;
-    playingSounds[sound.state->id]->state->startTick = cpuGetTiming();
+    playingSounds[sound.state->id]->channel = AS_SoundPlay(tail);
+    playingSounds[sound.state->id]->playing = true;
+    playingSounds[sound.state->id]->pendingHandoff = true;
+    playingSounds[sound.state->id]->startTick = cpuGetTiming();
 }
 
 void UpdateSounds() //todo rename and restructure
@@ -254,18 +246,18 @@ void UpdateSounds() //todo rename and restructure
     for (int i = 0; i < MAX_SOUNDS_PLAYING; i++)
     {
         if (playingSounds[i] == NULL){ continue;}
-        if (!playingSounds[i]->state->playing || !playingSounds[i]->state->pendingHandoff) return;
-        if (playingSounds[i]->state->channel < 0) return;
-        if (!IPC_Sound->chan[playingSounds[i]->state->channel].busy)
+        if (!playingSounds[i]->playing || !playingSounds[i]->pendingHandoff) continue;
+        if (playingSounds[i]->channel < 0) continue;
+        if (!IPC_Sound->chan[playingSounds[i]->channel].busy)
         {
             TRACELOG(LOG_INFO,"[UPTSOUNDS] SOUND %d PLAYING",i);
-            SoundInfo full = playingSounds[i]->w.s;
+            SoundInfo full = playingSounds[i]->s; //bad
             full.loop = 1;
 
-            playingSounds[i]->state->channel = AS_SoundPlay(full);
-            playingSounds[i]->state->pausedOffset = 0;
-            playingSounds[i]->state->pendingHandoff = false;
-            playingSounds[i]->state->startTick = cpuGetTiming();
+            playingSounds[i]->channel = AS_SoundPlay(full);
+            playingSounds[i]->pausedOffset = 0;
+            playingSounds[i]->pendingHandoff = false;
+            playingSounds[i]->startTick = cpuGetTiming();
         }
     }
 }
@@ -281,18 +273,18 @@ void SetSoundVolume(Sound sound, float volume)
 {
 
     float v = volume * 127;
-    AS_SetSoundVolume(playingSounds[sound.state->id]->state->channel,(int)v);
+    AS_SetSoundVolume(playingSounds[sound.state->id]->channel,(int)v);
 }
 void SetSoundPitch(Sound sound,float pitch)
 {
     sound.w.s.rate = (int)(sound.w.s.rate * pitch);
-    AS_SetSoundRate(playingSounds[sound.state->id]->state->channel,sound.w.s.rate);
+    AS_SetSoundRate(playingSounds[sound.state->id]->channel,sound.w.s.rate);
 }
 void SetSoundPan(Sound sound, float pan) // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 {
     int pI = ((int)(pan * 64.0f)) + 64;
     sound.w.s.pan = pI;
-    AS_SetSoundPan(playingSounds[sound.state->id]->state->channel,pI);
+    AS_SetSoundPan(playingSounds[sound.state->id]->channel,pI);
 
 }
 
