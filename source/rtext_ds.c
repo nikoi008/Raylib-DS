@@ -91,8 +91,8 @@ int drawChar(Font* f,Vector2 pos,char c,Color col,float size)
     {
         if (f->glyph[i].id == c) break;
     }
-    pos.x += f->glyph[i].xOffset;
-    pos.y += f->glyph[i].yOffset;
+    pos.x += (float)f->glyph[i].xOffset;
+    pos.y += (float)f->glyph[i].yOffset;
 
     DrawTextureRecAndScale(f->tex,(Rectangle){f->glyph[i].x ,f->glyph[i].y, f->glyph[i].width, f->glyph[i].height},pos, col,floattof32(size),floattof32(size));
     return i;
@@ -101,12 +101,12 @@ int drawChar(Font* f,Vector2 pos,char c,Color col,float size)
 void drawString(Font* f, Vector2 pos, char* s,Color col, int spacing,float size)
 {
 
-    int cursorX = pos.x / size;
-    int cursorY = pos.y / size;
+    int cursorX = (int)(pos.x / size);
+    int cursorY = (int)(pos.y / size);
     int len =  strlen(s);
     for (int i = 0; i < len ; i++)
     {
-        int id = drawChar(f,(Vector2){cursorX,cursorY},s[i],col,size);
+        int id = drawChar(f,(Vector2){(float)cursorX,(float)cursorY},s[i],col,size);
         cursorX += f->glyph[id].xAdvance;
         cursorX += spacing;
     }
@@ -121,12 +121,34 @@ void DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, f
 
 void DrawText(const char *text, int posX, int posY, int fontSize, Color color)
 {
-    drawString(&DS.fontDefault,(Vector2){posX,posY},text,color,1,fontSize);
+    drawString(&DS.fontDefault,(Vector2){(float)posX,(float)posY},text,color,1,(float)fontSize);
 }
 
+int findIndexOfChar(Font* f, char c)
+{
+    int i = 0;
+    while (i < f->f.chars && f->glyph[i].id != c) i++;
+    if (i >= f->f.chars) i = -1;
+    return i;
+}
+void SetTextLineSpacing(int spacing)
+{
+//todo support newlines
+};                                                 // Set vertical line spacing when drawing with line-breaks
+int MeasureText(const char *text, int fontSize)
+{
+    int totSize = 0;
 
-void SetTextLineSpacing(int spacing);                                                 // Set vertical line spacing when drawing with line-breaks
-int MeasureText(const char *text, int fontSize);
+    for (int i = 0; i < strlen(text); i++)
+    {
+        int index = findIndexOfChar(&DS.fontDefault,text[i]);
+        if (index < 0) continue;
+        totSize += DS.fontDefault.glyph[index].xAdvance;
+        totSize += 1;
+
+    }
+    return totSize * fontSize;
+};
 
 
 int TextFindIndex(const char *text, const char *search)
@@ -274,6 +296,7 @@ float TextToFloat(const char *text)
         {
             if (text[0] == '-') sign = -1.0f;
             text++;
+
         }
 
         int i = 0;
