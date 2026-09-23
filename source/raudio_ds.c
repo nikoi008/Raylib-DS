@@ -7,12 +7,12 @@
 
 
 
-typedef  struct
+typedef struct
 {
    SoundInfo s;
     bool alias;
 }Wave;
-
+#define MAX_SOUNDS_PLAYING 16
 typedef struct
 {
     SoundInfo s;
@@ -21,14 +21,14 @@ typedef struct
     u32 pausedOffset;
     bool alias;
     bool pendingHandoff;
-    int startTick;
+    u32 startTick;
     int id;
 }SoundState;
 
 typedef struct
 {
     SoundState *state;
-    Wave w;
+
 } Sound;
 
 //Sound *playingSounds[16] = {};
@@ -42,18 +42,14 @@ uint16_t read16(const u8 *p)
 {
     return p[0] | (p[1] << 8);
 }
-
-
-
 Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int dataSize)
 {
     Wave w;
     if (dat != NULL)
     {
-    
 
-        w.s.data = &dat[44];
-        w.s.size = read32(&dat[40]);
+
+        //w.s.data = &dat[44];
         if (dat[20] == 1)
         {
             int fmt = read16(&dat[34]);
@@ -76,12 +72,20 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
             w.s.rate = read32(&dat[24]) * 2;
         }
 
-        w.s.volume = 127;
-        w.s.pan = 127;
-        w.s.loop = 1;
+
         //int ch = AS_SoundPlay(s);
         //printf("%d",ch);
         //printf("channels=%d rate=%ld format=%d size=%lu\n", channels, w.s.rate, w.s.format, w.s.size);
+        u32 size = read32(&dat[40]);
+
+        memmove(dat,dat + 44,size);
+        void* shrunk = realloc(dat,size);
+        dat = shrunk;
+        w.s.data = dat;
+        w.s.size = size;
+        w.s.volume = 127;
+        w.s.pan = 127;
+        w.s.loop = 1;
         return w;
 
     }
@@ -93,200 +97,49 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
 }
 Wave LoadWave(const char* fileName)
 {
-    int dataSize = 0;
-    unsigned char* dat = LoadFileData(fileName,&dataSize);
-    if (dat != NULL)
-    {
-        Wave w = LoadWaveFromMemory(GetFileExtension(fileName),dat,dataSize);
-        return w;
-    }
-    else
-    {
-        printf("Failed to load %s",fileName);
-    }
-}
-bool isWaveValid(Wave w)
-{
-    return true; // todo deal with this later
-}
+    int datasize;
+    unsigned char* data = LoadFileData(fileName,&datasize);
+    return LoadWaveFromMemory(GetFileExtension(fileName),data,datasize);
+};
+bool isWaveValid(Wave w);
 
 
 Sound LoadSoundFromWave(Wave wave)
 {
-    SoundState *st = calloc(1,sizeof(SoundState));
-    st->s = wave.s;
-    st->alias = wave.alias;
-    st->channel = -1;
-    st->id = -99;
-    return (Sound){st};
-}
-
+    Sound s;
+    s.state = malloc(sizeof(SoundInfo));
+    s.state->s = wave.s;
+    s.state->alias = false;
+    s.state->id = -1;
+    s.state->playing = false;
+};
 Sound LoadSound(const char *fileName)
 {
     return LoadSoundFromWave(LoadWave(fileName));
-}
-
-bool IsSoundValid(Sound sound)
-{
-    if (sound.w.s.data != NULL) return true; //todo make more robust
-    return false;
-};            // Checks if a sound is valid (data loaded and buffers initialized)
-//void UpdateSound(Sound sound, const void *data, int sampleCount); // Update sound buffer with new data (default data format: 16 bit integer, stereo)
-
-
-
-void UnloadWave(Wave wave)
-{
-    free(wave.s.data);
-    wave.s.size = 0;
-    wave.s.format = -1;
-    wave.s.volume = 0;
-};
-void UnloadSound(Sound sound)
-{
-    UnloadWave(sound.w);
-    free(sound.state);
 };
 
+bool IsSoundValid(Sound sound);
+
+void UnloadWave(Wave wave);
+void UnloadSound(Sound sound);
 
 
 
-bool ExportWave(Wave wave, const char *fileName)
-{
-    return false; //todo
-};
-bool ExportWaveAsCode(Wave wave, const char *fileName)
-{
-    //todo
-};
 
+bool ExportWave(Wave wave, const char *fileName);
+bool ExportWaveAsCode(Wave wave, const char *fileName);
 
-void InitAudioDevice(void)
-{
-    irqSet(IRQ_VBLANK, AS_SoundVBL);
-    irqEnable(IRQ_VBLANK);
-    AS_Init(AS_MODE_MP3 | AS_MODE_SURROUND | AS_MODE_16CH);
-    AS_SetDefaultSettings(AS_PCM_8BIT, 11025, AS_SURROUND);
-    DS.audioOn = true;
+void InitAudioDevice(void);
+void StopSound(Sound sound);
+void PlaySound(Sound sound);//how will this be passed by va;ue!?!??!
+void PauseSound(Sound sound);
+void ResumeSound(Sound sound);
+void UpdateSounds(); //todo rename and restructurealso fill in audiodevice stuff
 
-}
-
-
-#define MAX_SOUNDS_PLAYING 16
-void StopSound(Sound sound)
-{
-    if (sound.state->channel < 0) return;
-    soundKill(sound.state->channel);
-    sound.state->playing = false;
-    sound.state->id = -99;
-}
-void PlaySound(Sound sound)//how will this be passed by va;ue!?!??!
-{
-    sound.state->pausedOffset = 0;
-    sound.state->channel = AS_SoundPlay(sound.w.s);
-    sound.state->playing = true;
-    sound.state->pendingHandoff = false;
-    sound.state->startTick = cpuGetTiming();
-    if (sound.state->id < 0)
-    {
-        for (int i = 0; i < MAX_SOUNDS_PLAYING; i++)
-        {
-            if (playingSounds[i] != NULL) continue;
-            else
-            {
-                playingSounds[i] = sound.state;
-                sound.state->id = i;
-                break;
-            }
-
-        }
-        if (sound.state->id < 0) TRACELOG(LOG_INFO,"SOUND: ALL CHANNELS ALREADY PLAYING MUSIC");
-    }
-    else
-    {
-        TRACELOG(LOG_INFO,"SOUND: SOUND ALREADY PLAYING");
-    }
-
-}
-void PauseSound(Sound sound)
-{
-
-    if (!playingSounds[sound.state->id]->playing || playingSounds[sound.state->id]->channel < 0) return;
-
-    u32 elapsedTicks = cpuGetTiming() - playingSounds[sound.state->id]->startTick;
-    float elapsedSeconds = (float)elapsedTicks / BUS_CLOCK;
-
-    int bytesPerSample = (sound.w.s.format == AS_PCM_16BIT) ? 2 : 1;
-    u32 elapsedBytes = (u32)(elapsedSeconds * sound.w.s.rate) * bytesPerSample;
-
-    playingSounds[sound.state->id]->pausedOffset += elapsedBytes;
-    playingSounds[sound.state->id]->pausedOffset %= sound.w.s.size;
-
-    AS_SoundStop(playingSounds[sound.state->id]->channel);
-    playingSounds[sound.state->id]->playing = false;
-    playingSounds[sound.state->id]->pendingHandoff = false;
-}
-void ResumeSound(Sound sound)
-{
-    if (playingSounds[sound.state->id]->playing || playingSounds[sound.state->id]->pausedOffset >= sound.w.s.size) return;
-
-    SoundInfo tail = sound.w.s;
-    tail.data = sound.w.s.data + playingSounds[sound.state->id]->pausedOffset;
-    tail.size = sound.w.s.size - playingSounds[sound.state->id]->pausedOffset;
-    tail.loop = 0;
-
-    playingSounds[sound.state->id]->channel = AS_SoundPlay(tail);
-    playingSounds[sound.state->id]->playing = true;
-    playingSounds[sound.state->id]->pendingHandoff = true;
-    playingSounds[sound.state->id]->startTick = cpuGetTiming();
-}
-
-void UpdateSounds() //todo rename and restructure
-{
-    for (int i = 0; i < MAX_SOUNDS_PLAYING; i++)
-    {
-        if (playingSounds[i] == NULL){ continue;}
-        if (!playingSounds[i]->playing || !playingSounds[i]->pendingHandoff) continue;
-        if (playingSounds[i]->channel < 0) continue;
-        if (!IPC_Sound->chan[playingSounds[i]->channel].busy)
-        {
-            TRACELOG(LOG_INFO,"[UPTSOUNDS] SOUND %d PLAYING",i);
-            SoundInfo full = playingSounds[i]->s; //bad
-            full.loop = 1;
-
-            playingSounds[i]->channel = AS_SoundPlay(full);
-            playingSounds[i]->pausedOffset = 0;
-            playingSounds[i]->pendingHandoff = false;
-            playingSounds[i]->startTick = cpuGetTiming();
-        }
-    }
-}
-//todo also fill in audiodevice stuff
-
-bool IsSoundPlaying(Sound sound)
-{
-    //return sound.playing;
-    if (sound.state->id >= 0) return true;
-    return false;
-}
-void SetSoundVolume(Sound sound, float volume)
-{
-
-    float v = volume * 127;
-    AS_SetSoundVolume(playingSounds[sound.state->id]->channel,(int)v);
-}
-void SetSoundPitch(Sound sound,float pitch)
-{
-    sound.w.s.rate = (int)(sound.w.s.rate * pitch);
-    AS_SetSoundRate(playingSounds[sound.state->id]->channel,sound.w.s.rate);
-}
-void SetSoundPan(Sound sound, float pan) // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
-{
-    int pI = ((int)(pan * 64.0f)) + 64;
-    sound.w.s.pan = pI;
-    AS_SetSoundPan(playingSounds[sound.state->id]->channel,pI);
-
-}
+bool IsSoundPlaying(Sound sound);
+void SetSoundVolume(Sound sound, float volume);
+void SetSoundPitch(Sound sound,float pitch);
+void SetSoundPan(Sound sound, float pan); // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 
 
 typedef struct
