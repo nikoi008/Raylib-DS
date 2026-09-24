@@ -12,7 +12,7 @@ typedef struct
    SoundInfo s;
     int basePitch;
 }Wave;
-#define MAX_SOUNDS_PLAYING 16
+//#define MAX_SOUNDS_PLAYING 16
 typedef struct
 {
     SoundInfo s;
@@ -33,7 +33,7 @@ typedef struct
 } Sound;
 
 //Sound *playingSounds[16] = {};
-SoundState *playingSounds[16] = {};
+//SoundState *playingSounds[16] = {};
 uint32_t read32(const u8 *p)
 {
     return p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
@@ -139,7 +139,7 @@ void UnloadWave(Wave wave)
 void UnloadSound(Sound sound)
 {
     if (sound.state->channel >= 0) AS_SoundStop(sound.state->channel);
-    if (sound.state->channel >= 0) playingSounds[sound.state->channel] = NULL;
+    //if (sound.state->channel >= 0) playingSounds[sound.state->channel] = NULL;
     if (!sound.state->alias) free(sound.state->s.data);
     free(sound.state);
 };
@@ -162,7 +162,7 @@ void StopSound(Sound sound)
 {
 
     AS_SoundStop(sound.state->channel);
-    playingSounds[sound.state->channel] = NULL;
+   // playingSounds[sound.state->channel] = NULL;
     sound.state->channel = -1;
 };
 
