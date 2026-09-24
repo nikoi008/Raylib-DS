@@ -438,21 +438,19 @@ int isColInPal(Image *img, Color color) // returns index of color
     int convColor = ARGB16(1,color.r TO5BITS, color.g TO5BITS, color.b TO5BITS);
     bool hasCol = false;
     int colIndex = 0;
-    for (int i = 0; i < img->colors || hasCol == true; i++)
+    for (int i = 0; i < img->colors; i++)
     {
-        if (convColor == img->pal[i])
-        {
-            hasCol = true;
-            colIndex = i;
-        }
+        if (img->pal[i] == convColor) return i;
     }
-    if (!hasCol)
+
+    if (img->colors >= 255)
     {
-        img->pal[img->colors] = convColor;
-        img->colors++;
-        colIndex = img->colors;
+        TRACELOG(LOG_WARNING,"ISCOLINPAL: PALETTE FULL");
     }
-    return colIndex;
+
+    img->pal[img->colors] = convColor;
+    
+    return img->colors++;
 }
 void ImageClearBackground(Image *dst, Color color)
 {
@@ -480,7 +478,7 @@ void ImageDrawPixelV(Image *dst, Vector2 position, Color color)
     int colIndex = isColInPal(dst,color);
     dst->gfx[(int)position.y * (int)dst->size.x + (int)position.x] = colIndex;
 };                                   // Draw pixel within an image (Vector version)
-void ImageDrawLine(Image *dst, int x0, int x1, int y0, int y1, Color color)
+void ImageDrawLine(Image *dst, int x0, int y0, int x1, int y1, Color color)
 {
     //https://gist.github.com/bert/1085538
     int colIndex = isColInPal(dst,color);
@@ -590,9 +588,17 @@ void ImageDrawLine(Image *dst, int x0, int x1, int y0, int y1, Color color)
     }
     void ImageDrawTriangle(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color color);               // Draw triangle within an image
     void ImageDrawTriangleEx(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color c1, Color c2, Color c3); // Draw triangle with interpolated colors within an image
-    void ImageDrawTriangleLines(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color color);          // Draw triangle outline within an image
+    void ImageDrawTriangleLines(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color color)
+    {
+        ImageDrawLine(dst,(int)v1.x,(int)v1.y,(int)v2.x,(int)v2.y,color);
+        ImageDrawLine(dst,(int)v2.x,(int)v2.y,(int)v3.x,(int)v3.y,color);
+        ImageDrawLine(dst,(int)v3.x,(int)v3.y,(int)v1.x,(int)v1.y,color);
+    };          // Draw triangle outline within an image
     void ImageDrawTriangleFan(Image *dst, const Vector2 *points, int pointCount, Color color);         // Draw a triangle fan defined by points within an image (first vertex is the center)
     void ImageDrawTriangleStrip(Image *dst, const Vector2 *points, int pointCount, Color color);       // Draw a triangle strip defined by points within an image
+
+
+//todo figure out what to do with these? possible but it will be very slow
     void ImageDraw(Image *dst, Image src, Rectangle srcRec, Rectangle dstRec, Color tint);             // Draw a source image within a destination image (tint applied to source)
     void ImageDrawText(Image *dst, const char *text, int posX, int posY, int fontSize, Color color);   // Draw text (using default font) within an image (destination)
     void ImageDrawTextEx(Image *dst, Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint);

@@ -56,16 +56,27 @@ int main()
     //Font m = LoadFont("nitro/default.fnt");
     //Font j = LoadFont("mono.fnt");
     Image i = GenImageColor(12,12,(Color){255,255,20});
+    ImageDrawLine(&i,4,4,8,8,(Color){255,0,0});
+    ImageDrawCircleLines(&i, 6, 6, 3, (Color){0,255,0});
     Texture2D t = LoadTextureFromImage(i);
+
     Sound s = LoadSound("fat:/test.wav");
     //Music m = LoadMusicStream("test.mp3");
     int ie = 0;
-    PlaySound(&s);
+    InitAudioDevice();
+    //PlaySound(s);
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(BLACK);
         ie++;
+        u16 kUp = keysUp();
+        if (kUp & KEY_UP)
+        {
+            printf("pressed\n");
+            PauseSound(s);
+        }
+        if (kUp & KEY_DOWN){ ResumeSound(s); printf("pressed");}
         DrawText(TextFormat("running %d",ie),10,10,1,(Color){100,20,255});
 
         DrawTexture(t,100,100,(Color){255,255,255});
