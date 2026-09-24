@@ -88,6 +88,9 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
         w.s.pan = 127;
         w.s.loop = 1;
         w.basePitch = w.s.rate;
+        w.s.priority = 0;
+        w.s.delay = 0;
+        DC_FlushRange(w.s.data, w.s.size);
         return w;
 
     }
@@ -99,6 +102,7 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
 }
 Wave LoadWave(const char* fileName)
 {
+    printf(" filename %s\n",fileName); //prints 9
     int datasize;
     unsigned char* data = LoadFileData(fileName,&datasize);
     return LoadWaveFromMemory(GetFileExtension(fileName),data,datasize);
@@ -116,6 +120,9 @@ Sound LoadSoundFromWave(Wave wave)
     s.state->playing = false;
     s.state->basePitch = wave.basePitch;
 
+
+    return s;
+
 };
 Sound LoadSound(const char *fileName)
 {
@@ -132,7 +139,7 @@ void UnloadWave(Wave wave)
 void UnloadSound(Sound sound)
 {
     if (sound.state->channel >= 0) AS_SoundStop(sound.state->channel);
-    if (sound.state->id >= 0) playingSounds[sound.state->id] = NULL;
+    if (sound.state->channel >= 0) playingSounds[sound.state->channel] = NULL;
     if (!sound.state->alias) free(sound.state->s.data);
     free(sound.state);
 };
@@ -154,15 +161,17 @@ void InitAudioDevice(void)
 void StopSound(Sound sound)
 {
 
-    AS_SoundStop(sound.state->id);
-    playingSounds[sound.state->id] = NULL;
-    sound.state->id = -1;
+    AS_SoundStop(sound.state->channel);
+    playingSounds[sound.state->channel] = NULL;
+    sound.state->channel = -1;
 };
+
+
 void PlaySound(Sound sound)
 {
 
-    sound.state->id = AS_SoundPlay(sound.state->s);
-    if (sound.state->id > 0)
+    sound.state->channel = AS_SoundPlay(sound.state->s);
+    if (sound.state->channel > 0)
     {
         sound.state->playing = true;
     }
@@ -174,17 +183,18 @@ void PlaySound(Sound sound)
 };//how will this be passed by va;ue!?!??!
 void PauseSound(Sound sound)
 {
-    StopSound(sound);
+    AS_SetSoundRate(sound.state->channel,0);
+    AS_SetSoundVolume(sound.state->channel,0);
 };
 void ResumeSound(Sound sound)
 {
-    PlaySound(sound);
+    AS_SetSoundRate(sound.state->channel,sound.state->basePitch);
 };
-void UpdateSounds(); //todo rename and restructurealso fill in audiodevice stuff
+void UpdateSounds(){ return;};//todo see the situation iwt4h tis //todo rename and restructurealso fill in audiodevice stuff
 
 bool IsSoundPlaying(Sound sound)
 {
-    if (sound.state->id > 0) return true;
+    if (sound.state->channel > 0) return true;
     return false;
 };
 void SetSoundVolume(Sound sound, float volume)
@@ -199,12 +209,12 @@ void SetSoundPitch(Sound sound, float pitch)
 {
     if (sound.state->channel < 0) return;
     float newPitch = (float)sound.state->basePitch * pitch;
-    AS_SetSoundRate(sound.state->id,(int)newPitch);
+    AS_SetSoundRate(sound.state->channel,(int)newPitch);
 };                   // Set pitch for a sound (1.0 is base level)
 void SetSoundPan(Sound sound, float pan)
 {
     if (sound.state->channel < 0) return;
-    AS_SetSoundPan(sound.state->id,(int)((pan + 1.0f) * 64.0f));
+    AS_SetSoundPan(sound.state->channel,(int)((pan + 1.0f) * 64.0f));
 };                       // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 
 typedef struct

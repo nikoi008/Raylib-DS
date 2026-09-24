@@ -7,24 +7,30 @@
 #include <arm9/as_lib9.h>
 #include <arm9/PA_General.h>
 
-typedef  struct
-{
-    SoundInfo s;
-    bool alias;
-}Wave;
-
 typedef struct
 {
-    Wave w;
-    //SoundInfo s;
+    SoundInfo s;
     int channel;
     bool playing;
     u32 pausedOffset;
     bool alias;
     bool pendingHandoff;
-    int startTick;
+    u32 startTick;
     int id;
+    int basePitch;
+}SoundState;
+
+typedef struct
+{
+    SoundState *state;
+
 } Sound;
+
+typedef struct
+{
+    SoundInfo s;
+    int basePitch;
+}Wave;
 
 typedef struct
 {
@@ -65,8 +71,8 @@ bool ExportWave(Wave wave, const char *fileName);               // Export wave d
 bool ExportWaveAsCode(Wave wave, const char *fileName);         // Export wave sample data to code (.h), returns true on success todod implement
 
 // Wave/Sound management functions
-void PlaySound(Sound *sound);                                    // Play a sound
-void StopSound(Sound *sound);                                    // Stop playing a sound
+void PlaySound(Sound sound);                                    // Play a sound
+void StopSound(Sound sound);                                    // Stop playing a sound
 void PauseSound(Sound sound);                                   // Pause a sound
 void ResumeSound(Sound sound);                                  // Resume a paused sound
 bool IsSoundPlaying(Sound sound);                               // Check if a sound is currently playing
