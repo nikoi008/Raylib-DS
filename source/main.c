@@ -6,80 +6,48 @@
 #define BLACK (Color){0,0,0}
 #define TO5BITS >>3 //useless macro go brrr
 #include "rtext_ds.h"
-
-
-bool isPowerOfTwo(unsigned int n)
+void rshapes()
 {
-    return n != 0 && (n & (n - 1)) == 0;
-}
-
-unsigned int nextPO2(unsigned int n)
-{
-    n--;
-    n |= n  >> 1;
-    n  |= n  >> 2;
-    n  |= n  >> 4;
-    n  |= n  >> 8;
-    n  |= n  >> 16;
-    n ++;
-    return n;
-}
-
-
-Image GenImageColor(int width, int height, Color color)
-{
-    Image i;
-    int gfxWidth = isPowerOfTwo(width) ? width : nextPO2(width);
-    int gfxHeight = isPowerOfTwo(height) ? height : nextPO2(height);
-    i.size.x = (float)gfxWidth;
-    i.size.y = (float)gfxHeight;
-    i.frames = 1;
-    i.colors = 1;
-    i.gfx = malloc(sizeof(u8) * gfxHeight * gfxWidth);
-    i.pal = malloc(sizeof(u16));
-    i.pal[0] = ARGB16(1,color.r TO5BITS, color.g TO5BITS, color.b TO5BITS);
-    for (int y = 0; y < gfxHeight; y++)
+    for (int y = 10; y < 40; y += 2)
     {
-        for (int x = 0; x < gfxWidth; x++)
+        for (int x = 10; x < 40; x += 2)
         {
-            i.gfx[y * gfxWidth + x] = 0;
+            Color c = {x * 5,y * 6,128};
+            DrawPixel(x,y,c);
         }
     }
+    int r = 10;
+    for (int y = 10; y < 40; y += 3)
+    {
 
-    return i;
-};
+        DrawLine(50,y,120,y,(Color){ r,y * 3, 64});
+        r += 2;
+    }
+
+    DrawLineDashed((Vector2){130,10},(Vector2){180,10},4,2,RED);
+    DrawLineEx((Vector2){190,10},(Vector2){240,15},5,YELLOW);
+
+    Vector2 points[7] = {{130, 35},{145, 20},{160, 35},{175, 20},{190, 35},{205, 20},{220, 35}};
+    DrawLineStrip(points,7,PURPLE);
+
+    DrawCircle(10 + 16,45 + 16,16,GREEN);
+    DrawCircleLines(50 + 16, 45 + 16,16, ORANGE);
+    DrawCircleGradient((Vector2){90 + 16, 45 + 16},16,YELLOW,RED);
+
+    DrawEllipse(130 + 24, 45 + 14, 24,14,PINK);
+    DrawEllipseLines(190 + 24, 45 + 14, 24,14,BLUE);
+    
+}
 
 int main()
 {
     InitWindow(256,192,"w");
-   /// Font f = LoadFont("nitro:/default.fnt");
-    //Font m = LoadFont("nitro/default.fnt");
-    //Font j = LoadFont("mono.fnt");
-    Image i = GenImageColor(12,12,(Color){255,255,20});
-    ImageDrawLine(&i,4,4,8,8,(Color){255,0,0});
-    ImageDrawCircleLines(&i, 6, 6, 3, (Color){0,255,0});
-    Texture2D t = LoadTextureFromImage(i);
-
-    Sound s = LoadSound("fat:/test.wav");
-    //Music m = LoadMusicStream("test.mp3");
-    int ie = 0;
     InitAudioDevice();
-    //PlaySound(s);
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(BLACK);
-        ie++;
-        u16 kUp = keysUp();
-        if (kUp & KEY_UP)
-        {
-            printf("pressed\n");
-            PauseSound(s);
-        }
-        if (kUp & KEY_DOWN){ ResumeSound(s); printf("pressed");}
-        DrawText(TextFormat("running %d",ie),10,10,1,(Color){100,20,255});
-
-        DrawTexture(t,100,100,(Color){255,255,255});
+        rshapes();
         EndDrawing();
     }
 
