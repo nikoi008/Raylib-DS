@@ -274,7 +274,7 @@ void DrawEllipse(int centerX,int centerY, float radiusH, float radiusV, Color co
 };
 void DrawEllipseLines(int centerX, int centerY, float radiusH, float radiusV, Color color)
 {
-    DrawEllipseV((Vector2){(float)centerX,(float)centerY},radiusH,radiusV,color);
+    DrawEllipseLinesV((Vector2){(float)centerX,(float)centerY},radiusH,radiusV,color);
 
 };
 void drawEllipsePoints(int cx,int cy, int x, int y, Color color)
@@ -413,6 +413,8 @@ void DrawTriangleLines(Vector2 v1, Vector2 v2, Vector2 v3, Color color)
 {
     glTriangle((int)v1.x,(int)v1.y,(int)v2.x,(int)v2.y,(int)v3.x,(int)v3.y,RGB15(color.r >> 3, color.g >> 3, color.b >> 3));
 };
+
+
 void DrawTriangleFan(const Vector2 *points, int pointCount, Color color)
 {
     if (pointCount < 3) return;
