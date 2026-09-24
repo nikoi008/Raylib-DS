@@ -38,6 +38,7 @@ Vector2 getImageSize(const char* buffer);
 Image LoadImage(const unsigned char* loc);
 Image LoadImageAnim(const char* filename, int frames);
 Image LoadImageFromMemory(const unsigned char *fileType, const unsigned char *fileData, int dataSize);
+Image GenImageColor(int width, int height, Color color);
 
 void UnloadImage(Image image);
 bool ExportImage(Image image);

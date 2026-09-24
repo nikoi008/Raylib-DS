@@ -432,6 +432,47 @@ void UnloadTextureAnim(Texture2D texture)
     }
 }
 
+bool isPowerOfTwo(unsigned int n)
+{
+    return n != 0 && (n & (n - 1)) == 0;
+}
+
+unsigned int nextPO2(unsigned int n)
+{
+    n--;
+    n |= n  >> 1;
+    n  |= n  >> 2;
+    n  |= n  >> 4;
+    n  |= n  >> 8;
+    n  |= n  >> 16;
+    n ++;
+    return n;
+}
+
+
+Image GenImageColor(int width, int height, Color color)
+{
+    Image i;
+    int gfxWidth = isPowerOfTwo(width) ? width : nextPO2(width);
+    int gfxHeight = isPowerOfTwo(height) ? height : nextPO2(height);
+    i.size.x = (float)gfxWidth;
+    i.size.y = (float)gfxHeight;
+    i.frames = 1;
+    i.colors = 1;
+    i.gfx = malloc(sizeof(u8) * gfxHeight * gfxWidth);
+    i.pal = malloc(sizeof(u16));
+    i.pal[0] = ARGB16(1,color.r TO5BITS, color.g TO5BITS, color.b TO5BITS);
+    for (int y = 0; y < gfxHeight; y++)
+    {
+        for (int x = 0; x < gfxWidth; x++)
+        {
+            i.gfx[y * gfxWidth + x] = 0;
+        }
+    }
+
+    return i;
+};
+
 
 int isColInPal(Image *img, Color color) // returns index of color
 {
@@ -586,8 +627,11 @@ void ImageDrawLine(Image *dst, int x0, int y0, int x1, int y1, Color color)
         ImageDrawLine(dst,rec.x + rec.width,rec.y,rec.x + rec.width,rec.y + rec.height,color);
         ImageDrawLine(dst,rec.x,rec.y + rec.height,rec.x + rec.width,rec.y + rec.height,color);
     }
-    void ImageDrawTriangle(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color color);               // Draw triangle within an image
-    void ImageDrawTriangleEx(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color c1, Color c2, Color c3); // Draw triangle with interpolated colors within an image
+    void ImageDrawTriangle(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color color);// Draw triangle within an image
+    void ImageDrawTriangleEx(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color c1, Color c2, Color c3);
+
+
+// Draw triangle with interpolated colors within an image
     void ImageDrawTriangleLines(Image *dst, Vector2 v1, Vector2 v2, Vector2 v3, Color color)
     {
         ImageDrawLine(dst,(int)v1.x,(int)v1.y,(int)v2.x,(int)v2.y,color);
@@ -599,6 +643,6 @@ void ImageDrawLine(Image *dst, int x0, int y0, int x1, int y1, Color color)
 
 
 //todo figure out what to do with these? possible but it will be very slow
-    void ImageDraw(Image *dst, Image src, Rectangle srcRec, Rectangle dstRec, Color tint);             // Draw a source image within a destination image (tint applied to source)
+    void ImageDraw(Image *dst, Image src, Rectangle srcRec, Rectangle dstRec, Color tint);// Draw a source image within a destination image (tint applied to source)
     void ImageDrawText(Image *dst, const char *text, int posX, int posY, int fontSize, Color color);   // Draw text (using default font) within an image (destination)
     void ImageDrawTextEx(Image *dst, Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint);
