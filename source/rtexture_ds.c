@@ -85,10 +85,10 @@ Image LoadImageAnim(const char* filename, int frames)
 
         Image I = LoadImageFromMemory(GetFileExtension(filename),fileData,dataSize);
         //UnloadFileData(fileData); uncommenting this crashes the program, but only for pngs
-       printPalette(I.pal,I.colors);
-       printGfx(I.gfx, I.size);
-
-        return (Image){I.pal,I.gfx,I.size,frames};
+       //printPalette(I.pal,I.colors);
+       //printGfx(I.gfx, I.size);
+        I.frames = frames;
+        return I;
 
     }
     else
@@ -201,6 +201,7 @@ Image processPPM(unsigned char* fileData,int dataSize)
 #define TO5BITS >>3 //useless macro go brrr
 Image processPng(unsigned char* image, int height, int width)
 {
+    
     if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); /*return (Image){0};*/}
     if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); /*return (Image){0} ;*/}
 
@@ -238,7 +239,7 @@ Image processPng(unsigned char* image, int height, int width)
         }
     }
     free(image);
-    return (Image){pal,gfx,(Vector2){(float)width,(float)height},1};
+    return (Image){pal,gfx,(Vector2){(float)width,(float)height},1,palTotal};
 }
 Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *fileData, int dataSize)
 {
@@ -301,7 +302,7 @@ Texture2D LoadTexture(const char* filename)
 }
 
 Texture2D LoadTextureFromImage(Image i)
-{   
+{
     Texture2D t;
     //t.i = i;
     //t.id = malloc(sizeof(int) * 1);
@@ -314,18 +315,20 @@ Texture2D LoadTextureFromImage(Image i)
     return t;
 }
 
-
 Texture2D LoadTextureAnimFromImage(Image im)
 {
     Texture2D t = {0};
     t.frames = im.frames;
     t.image = malloc(sizeof(glImage) * im.frames);
-    int spriteH = im.size.y / im.frames;
 
-    //t.id = malloc(sizeof(int));
-    TRACELOG(LOG_INFO,"BEFORE LOADTILESET \n");
-    t.id = glLoadTileSet(t.image,im.size.x, spriteH,im.size.x, im.size.y,GL_RGB256,im.size.x, im.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256, im.pal, im.gfx);
-    TRACELOG(LOG_INFO,"ANIM TEXTURE ID %d\n",t.id);
+    int spriteH = (int)im.size.y / im.frames;
+
+    uint16_t texcoords[4] = {0, 0, (uint16_t)im.size.x, (uint16_t)spriteH};
+
+    for (int i = 0; i < im.frames; i++)
+    {
+        int id = glLoadSpriteSet(&t.image[i],1,texcoords,GL_RGB256,(int)im.size.x,spriteH,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256,im.pal,im.gfx + i * (int)im.size.x * spriteH);
+    }
     return t;
 }
 void UnloadTexture(Texture2D texture)
@@ -345,7 +348,8 @@ void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tin
 void DrawTexture(Texture2D texture, int posX, int posY, Color tint)
 {
     //rgb = (tint.r,tint.g,tint.b);
-    glColor(ARGB16(1,tint.r >> 3, tint.g >> 3, tint.b >> 3));
+  //  glColor(ARGB16(1,tint.r >> 3, tint.g >> 3, tint.b >> 3));
+    //todo add tint
     glSprite(posX, posY, GL_FLIP_NONE, texture.image);
 }
 
@@ -383,7 +387,11 @@ void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color
     glEnd();
 }
 
-
+void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint)
+{
+    //glColor(ARGB16(1, tint.r >> 3, tint.g >> 3, tint.b >> 3));
+    glSpriteRotateScaleXY((int)position.x,(int)position.y,degreesToAngle(rotation),floattof32(scale),floattof32(scale),GL_FLIP_NONE,texture.image);
+}
 void DrawTextureRecAndScale(Texture2D texture, Rectangle source, Vector2 position, Color tint,s32 sx,s32 sy)
 {
 
