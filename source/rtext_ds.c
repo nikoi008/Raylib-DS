@@ -145,7 +145,6 @@ int MeasureText(const char *text, int fontSize)
         if (index < 0) continue;
         totSize += DS.fontDefault.glyph[index].xAdvance;
         totSize += 1;
-
     }
     return totSize * fontSize;
 };
@@ -154,7 +153,6 @@ int MeasureText(const char *text, int fontSize)
 int TextFindIndex(const char *text, const char *search)
 {
     int position = -1;
-
     if (text != NULL)
     {
         char *ptr = strstr(text, search);

@@ -3,7 +3,6 @@
 #include "rcore_ds.h"
 //#include <math.h>
 #include <gl2d.h>
-#include <arm9/PA_General.h>
 
 #include "rshapes_ds.h"
 
