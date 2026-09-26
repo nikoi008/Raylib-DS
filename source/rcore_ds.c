@@ -3,7 +3,6 @@
 #include <stdarg.h>
 #include "rcore_ds.h"
 #include <fat.h>
-#include <arm9/PA_General.h>
 #include <sys/stat.h>
 #include <dirent.h>
 
@@ -37,7 +36,7 @@ void BeginMode2D(Camera2D camera)
 {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef32(-camera.target.x,-camera.target.x,0);
+    glTranslatef32(-camera.target.x,-camera.target.y,0);
     if (camera.rotation != 0)
     {
         glRotateZi(degreesToAngle(camera.rotation));
@@ -71,7 +70,6 @@ void SetTraceLogCallback(TraceLogCallback callback)
 
 void InitWindow(int width, int height, const char* title)
 {
-    PA_Init();
     videoSetMode(MODE_0_3D); //https://mtheall.com/banks.html#A=TS0&B=TS1&C=TS2&D=TS3&E=TPAL&F=TPAL4&G=TPAL5&H=SBG0&I=SOBJ
     videoSetModeSub(MODE_0_2D);
 
@@ -88,7 +86,7 @@ void InitWindow(int width, int height, const char* title)
     consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
     cpuStartTiming(0);
     DS.lastTicks = cpuGetTiming();
-    lcdSwap();
+    //lcdSwap();
     consoleDemoInit();
     //
     if (!fatInitDefault())
@@ -110,7 +108,7 @@ void InitWindow(int width, int height, const char* title)
     }
 
     DS.fontDefault = GetFontDefault();
-
+    
 }
 
 void CloseWindow(void)

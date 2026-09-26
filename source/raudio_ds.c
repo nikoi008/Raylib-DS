@@ -1,5 +1,5 @@
 #include <math.h>
-#include "rcore_ds.h"
+/*#include "rcore_ds.h"
 #include <nds.h>
 #include <stdlib.h>
 #include <arm9/as_lib9.h>
@@ -308,4 +308,4 @@ void SetMusicPan(Music *music, float pan)
 float GetMusicTimeLength(Music music){}//todo figure out how to do this};                          // Get music time length (in seconds)
 float GetMusicTimePlayed(Music music){}//todo add a timer};
 
-//AUDIOSTREAM IS BROKEN ASLIB READS FROM THE SD CARD DURING AN INTERRUPT BUT IT IS BROKEN
+//AUDIOSTREAM IS BROKEN ASLIB READS FROM THE SD CARD DURING AN INTERRUPT BUT IT IS BROKEN*/
