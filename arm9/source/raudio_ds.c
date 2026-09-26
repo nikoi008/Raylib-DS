@@ -1,8 +1,8 @@
 #include <math.h>
-/*#include "rcore_ds.h"
+#include "rcore_ds.h"
 #include <nds.h>
 #include <stdlib.h>
-#include <arm9/as_lib9.h>
+#include "as_lib9.h"
 
 
 
@@ -152,10 +152,11 @@ bool ExportWaveAsCode(Wave wave, const char *fileName);
 
 void InitAudioDevice(void)
 {
-    if (!AS_Init(AS_MODE_MP3 | AS_MODE_SURROUND | AS_MODE_16CH)) {
-        TRACELOG(LOG_ERROR,"ASLIB: INIT FAILED \n");
-        return;
-    }
+   // if (!AS_Init(AS_MODE_MP3 | AS_MODE_SURROUND | AS_MODE_16CH)) {
+   //     TRACELOG(LOG_ERROR,"ASLIB: INIT FAILED \n");
+   //     return;
+  //  }
+    AS_Init(AS_MODE_MP3 | AS_MODE_SURROUND | AS_MODE_16CH);
 
 };
 void StopSound(Sound sound)

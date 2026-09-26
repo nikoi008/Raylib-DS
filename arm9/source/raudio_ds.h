@@ -4,8 +4,7 @@
 
 #ifndef RAYLIB_DS_RAUDIO_H
 #define RAYLIB_DS_RAUDIO_H
-/*#include <arm9/as_lib9.h>
-#include <arm9/PA_General.h>
+#include "as_lib9.h"
 
 typedef struct
 {
@@ -125,5 +124,5 @@ void AttachAudioStreamProcessor(AudioStream stream, AudioCallback processor); //
 void DetachAudioStreamProcessor(AudioStream stream, AudioCallback processor); // Detach audio stream processor from stream
 
 void AttachAudioMixedProcessor(AudioCallback processor); // Attach audio stream processor to the entire audio pipeline, receives frames x 2 samples as 'float' (stereo)
-void DetachAudioMixedProcessor(AudioCallback processor);*/
+void DetachAudioMixedProcessor(AudioCallback processor);
 #endif //RAYLIB_DS_RAUDIO_H

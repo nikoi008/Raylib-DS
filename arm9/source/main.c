@@ -208,15 +208,22 @@ void camera2D()
 #include "raudio_ds.h"
 int main()
 {
+
     InitWindow(256,192,"w");
-    initCamera2Dexample();
+    InitAudioDevice();
+    char* dat;
+    int size;
+    dat = LoadFileData("fat:/test.wv",&size);
+    AS_MP3DirectPlay(dat,size);
+    //PlayMusicStream(&m);
+    //PlaySound(s);
     while (!WindowShouldClose())
     {
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
         //rshapes();
         //rtexture();
-        camera2D();
+        //camera2D();
         EndDrawing();
     }
 
