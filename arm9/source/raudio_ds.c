@@ -4,6 +4,20 @@
 #include <stdlib.h>
 #include "as_lib9.h"
 
+typedef struct
+{
+    int pitch;
+    int pan;
+    int volume;
+    bool playing;
+}MusicState;
+typedef struct
+{
+    int mSize;
+    unsigned char* mData;
+    MusicState *s;
+}Music;
+
 
 
 
@@ -219,25 +233,13 @@ void SetSoundPan(Sound sound, float pan)
     AS_SetSoundPan(sound.state->channel,(int)((pan + 1.0f) * 64.0f));
 };                       // Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 
-typedef struct
-{
-    int pitch;
-    int pan;
-    int volume;
-    bool playing;
-}MusicState;
-typedef struct
-{
-    int mSize;
-    unsigned char* mData;
-    MusicState *s;
-}Music;
+
 
 Music LoadMusicStream(const char *fileName)
 {
     Music m;
     m.mData = LoadFileData(fileName,&m.mSize);
-    m.s = malloc(sizeof(MusicState));
+    m.s = calloc(1,sizeof(MusicState));
     return m;
 } // Load music stream from file
 Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data, int dataSize)
@@ -245,7 +247,7 @@ Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data,
     if (strcmp(fileType,"mp3") == 0)
     {
         Music m;
-        m.s = malloc(sizeof(MusicState));
+        m.s = calloc(1,sizeof(MusicState));
         m.mData = data;
         m.mSize = dataSize;
         return m;

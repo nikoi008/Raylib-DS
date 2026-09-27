@@ -33,13 +33,16 @@ typedef struct
 
 typedef struct
 {
+    int pitch;
+    int pan;
+    int volume;
+    bool playing;
+}MusicState;
+typedef struct
+{
     int mSize;
     unsigned char* mData;
-    char* filename;
-    int pitch;
-    int pan; //todo free
-    int volume;
-    bool playing; //todo dont forget to also free
+    MusicState *s;
 }Music;
 
 
