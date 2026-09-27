@@ -221,92 +221,98 @@ void SetSoundPan(Sound sound, float pan)
 
 typedef struct
 {
+    int pitch;
+    int pan;
+    int volume;
+    bool playing;
+}MusicState;
+typedef struct
+{
     int mSize;
     unsigned char* mData;
-    char* filename;
-    int pitch;
-    int pan; //todo free
-    int volume;
-    bool playing; //todo dont forget to also free
+    MusicState *s;
 }Music;
 
 Music LoadMusicStream(const char *fileName)
 {
-    char* mData; int mSize;
-    mData = LoadFileData(fileName,&mSize);
-    return (Music){mSize,mData,fileName,1,64,false};
+    Music m;
+    m.mData = LoadFileData(fileName,&m.mSize);
+    m.s = malloc(sizeof(MusicState));
 } // Load music stream from file
 Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data, int dataSize)
 {
     if (strcmp(fileType,"mp3") == 0)
     {
-        return (Music){dataSize,data,"",1,64,false};
+        Music m;
+        m.s = malloc(sizeof(MusicState));
+        m.mData = data;
+        m.mSize = dataSize;
     }
     TRACELOG(LOG_INFO,"MUSIC STREAM CAN ONLY BE LOADED AS MP3");
-    return (Music){0,0,0,0};
+    return (Music){0,0,0};
 }; // Load music stream from data
-bool IsMusicValid(Music *music)
+bool IsMusicValid(Music music)
 {
-    if (music->mData == NULL) return false;//todo check more
+    if (music.mData == NULL) return false;//todo check more
     return true;
 
 };
-void UnloadMusicStream(Music *music)
+void UnloadMusicStream(Music music)
 {
-    free(music->mData);
-    free(music->filename);
+    free(music.mData);
 
 };                            // Unload music stream
-void PlayMusicStream(Music *music)
+void PlayMusicStream(Music music)
 {
-    DC_FlushRange(music->mData, music->mSize);
-    AS_MP3DirectPlay(music->mData, music->mSize);
-    music->playing = true;
+    DC_FlushRange(music.mData, music.mSize);
+    AS_MP3DirectPlay(music.mData, music.mSize);
+    music.s->playing = true;
 };                           // Start music playing
-bool IsMusicStreamPlaying(Music *music)
+bool IsMusicStreamPlaying(Music music)
 {
-    return music->playing;
+    return music.s->playing;
 };                         // Check if music is playing
 void UpdateMusicStream(Music music);                            // Updates buffers for music streaming todo see what this does -- aslib hadnles this by itself afaik
-void StopMusicStream(Music *music)
+void StopMusicStream(Music music)
 {
     AS_MP3Stop();
     //AS_MP3Pause();
-    music->playing = false;
+    music.s->playing = false;
 };                              // Stop music playing
-void PauseMusicStream(Music *music)
+void PauseMusicStream(Music music)
 {
-    if (music->playing == true)
+    if (music.s->playing == true)
     {
         AS_MP3Pause();
-        music->playing = false;
+        music.s->playing = false;
     }
 };                          // Pause music playing
-void ResumeMusicStream(Music *music)
+void ResumeMusicStream(Music music)
 {
-    if (music->playing == false)
+    if (music.s->playing == false)
     {
         AS_MP3Unpause();
+        music.s->playing = true;
     }
 };                            // Resume playing paused music
 void SeekMusicStream(Music music, float position)
 {
     //impossible afaik
 };              // Seek music to a position (in seconds)
-void SetMusicVolume(Music *music, float volume)
+void SetMusicVolume(Music music, float volume)
 {
-    music->volume = (int)(volume * 127);
-    AS_SetMP3Volume(music->volume);
+    music.s->volume = (int)(volume * 127);
+    AS_SetMP3Volume(music.s->volume);
 }                 // Set volume for music (1.0 is max level)
-void SetMusicPitch(Music *music, float pitch)
+void SetMusicPitch(Music music, float pitch)
 {
-    music->pitch = (int)(32000.0f * pitch);
-    AS_SetMP3Rate(music->pitch);
+    music.s->pitch = (int)(32000.0f * pitch);
+    AS_SetMP3Rate(music.s->pitch);
 };                   // Set pitch for a music (1.0 is base level)
-void SetMusicPan(Music *music, float pan)
+void SetMusicPan(Music music, float pan)
 {
     int pI = ((int)(pan * 64.0f)) + 64;
-    music->pan = pI;
+    music.s->pan = pI;
     AS_SetMP3Pan(pI);
 };                       // Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
 float GetMusicTimeLength(Music music){}//todo figure out how to do this};                          // Get music time length (in seconds)
