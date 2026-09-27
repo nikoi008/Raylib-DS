@@ -212,9 +212,9 @@ Sound wav2;
 void loadSongs()
 {
     //load one .wv and 2 .wavs
-   // m1 = LoadMusicStream("nitro:/test.wv");
-   // wav1 = LoadSound("nitro:/wav1.wav");
-    //wav2 = LoadSound("nitro:/wav2.wav");
+    m1 = LoadMusicStream("nitro:/test.wv");
+   wav1 = LoadSound("nitro:/wav1.wav");
+    wav2 = LoadSound("nitro:/wav2.wav");
 }
 void raudio()
 {
@@ -225,26 +225,28 @@ void raudio()
     //touchscreen x to change volume
         if (IsKeyReleased(KEY_X))
         {
-            if (IsMusicStreamPlaying(&m1)) PauseMusicStream(&m1);
-            else PlayMusicStream(&m1);
+            if (IsMusicStreamPlaying(m1)) PauseMusicStream(m1);
+            else PlayMusicStream(m1);
 
         }
     if (IsKeyReleased(KEY_Y))
     {
+        printf("released\n");
         if (IsSoundPlaying(wav1)) PauseSound(wav1);
         else PlaySound(wav1);
     }
     if (IsKeyReleased(KEY_A))
     {
-        if (IsSoundPlaying(wav2)) PauseSound(wav2);
-        else PlaySound(wav2);
+        printf("released\n");
+        PlaySound(wav2);
     }
 
     if (IsKeyReleased(KEY_B))
     {
-        StopSound(wav1);
-        StopSound(wav2);
-        StopMusicStream(&m1);
+        printf("released\n");
+       // StopSound(wav1);
+       // StopSound(wav2);
+       // StopMusicStream(m1);
     }
     
 
@@ -261,14 +263,13 @@ int main()
 
     loadSongs();
     //PlaySound(wav2);
-    m1.mData = LoadFileData("nitro:/test.wv",&m1.mSize);
-  AS_MP3DirectPlay(m1.mData,m1.mSize);
-
-
+    int s;
+    
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(BLACK);
+        printf("running");
         //rshapes();
         //rtexture();
         //camera2D();

@@ -238,6 +238,7 @@ Music LoadMusicStream(const char *fileName)
     Music m;
     m.mData = LoadFileData(fileName,&m.mSize);
     m.s = malloc(sizeof(MusicState));
+    return m;
 } // Load music stream from file
 Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data, int dataSize)
 {
@@ -247,6 +248,7 @@ Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data,
         m.s = malloc(sizeof(MusicState));
         m.mData = data;
         m.mSize = dataSize;
+        return m;
     }
     TRACELOG(LOG_INFO,"MUSIC STREAM CAN ONLY BE LOADED AS MP3");
     return (Music){0,0,0};
