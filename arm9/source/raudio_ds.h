@@ -92,7 +92,7 @@ void UnloadMusicStream(Music *music);                            // Unload music
 void PlayMusicStream(Music *music);                              // Start music playing
 bool IsMusicStreamPlaying(Music *music);                         // Check if music is playing
 void UpdateMusicStream(Music music);                            // Updates buffers for music streaming
-void StopMusicStream(Music music);                              // Stop music playing
+void StopMusicStream(Music *music);                              // Stop music playing
 void PauseMusicStream(Music *music);                             // Pause music playing
 void ResumeMusicStream(Music *music);                            // Resume playing paused music
 void SeekMusicStream(Music music, float position);              // Seek music to a position (in seconds)
@@ -104,25 +104,5 @@ float GetMusicTimePlayed(Music music);                          // Get current m
 void UpdateSound(Sound* sound);
 void UpdateSounds();
 // AudioStream management functions
-AudioStream LoadAudioStream(unsigned int sampleRate, unsigned int sampleSize, unsigned int channels); // Load audio stream (to stream raw audio pcm data)
-bool IsAudioStreamValid(AudioStream stream);                    // Checks if an audio stream is valid (buffers initialized)
-void UnloadAudioStream(AudioStream stream);                     // Unload audio stream and free memory
-void UpdateAudioStream(AudioStream stream, const void *data, int frameCount); // Update audio stream buffers with data
-bool IsAudioStreamProcessed(AudioStream stream);                // Check if any audio stream buffers requires refill
-void PlayAudioStream(AudioStream stream);                       // Play audio stream
-void PauseAudioStream(AudioStream stream);                      // Pause audio stream
-void ResumeAudioStream(AudioStream stream);                     // Resume audio stream
-bool IsAudioStreamPlaying(AudioStream stream);                  // Check if audio stream is playing
-void StopAudioStream(AudioStream stream);                       // Stop audio stream
-void SetAudioStreamVolume(AudioStream stream, float volume);    // Set volume for audio stream (1.0 is max level)
-void SetAudioStreamPitch(AudioStream stream, float pitch);      // Set pitch for audio stream (1.0 is base level)
-void SetAudioStreamPan(AudioStream stream, float pan);          // Set pan for audio stream (-1.0 to 1.0 range, 0.0 is centered)
-void SetAudioStreamBufferSizeDefault(int size);                 // Default size for new audio streams
-void SetAudioStreamCallback(AudioStream stream, AudioCallback callback); // Audio thread callback to request new data
 
-void AttachAudioStreamProcessor(AudioStream stream, AudioCallback processor); // Attach audio stream processor to stream, receives frames x 2 samples as 'float' (stereo)
-void DetachAudioStreamProcessor(AudioStream stream, AudioCallback processor); // Detach audio stream processor from stream
-
-void AttachAudioMixedProcessor(AudioCallback processor); // Attach audio stream processor to the entire audio pipeline, receives frames x 2 samples as 'float' (stereo)
-void DetachAudioMixedProcessor(AudioCallback processor);
 #endif //RAYLIB_DS_RAUDIO_H

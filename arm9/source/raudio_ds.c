@@ -113,7 +113,7 @@ bool isWaveValid(Wave w);
 Sound LoadSoundFromWave(Wave wave)
 {
     Sound s;
-    s.state = malloc(sizeof(SoundInfo));
+    s.state = malloc(sizeof(SoundState));
     s.state->s = wave.s;
     s.state->alias = false;
     s.state->id = -1;
@@ -172,7 +172,8 @@ void PlaySound(Sound sound)
 {
 
     sound.state->channel = AS_SoundPlay(sound.state->s);
-    if (sound.state->channel > 0)
+    printf("\n\n Playing channel %d", sound.state->channel);
+    if (sound.state->channel >= 0)
     {
         sound.state->playing = true;
     }
@@ -195,7 +196,7 @@ void UpdateSounds(){ return;};//todo see the situation iwt4h tis //todo rename a
 
 bool IsSoundPlaying(Sound sound)
 {
-    if (sound.state->channel > 0) return true;
+    if (sound.state->channel >= 0) return true;
     return false;
 };
 void SetSoundVolume(Sound sound, float volume)
@@ -239,7 +240,7 @@ Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data,
 {
     if (strcmp(fileType,"mp3") == 0)
     {
-        (Music){dataSize,data,"",1,64,false};
+        return (Music){dataSize,data,"",1,64,false};
     }
     TRACELOG(LOG_INFO,"MUSIC STREAM CAN ONLY BE LOADED AS MP3");
     return (Music){0,0,0,0};
@@ -267,18 +268,20 @@ bool IsMusicStreamPlaying(Music *music)
     return music->playing;
 };                         // Check if music is playing
 void UpdateMusicStream(Music music);                            // Updates buffers for music streaming todo see what this does -- aslib hadnles this by itself afaik
-void StopMusicStream(Music music)
+void StopMusicStream(Music *music)
 {
     AS_MP3Stop();
+    //AS_MP3Pause();
+    music->playing = false;
 };                              // Stop music playing
 void PauseMusicStream(Music *music)
 {
     if (music->playing == true)
     {
         AS_MP3Pause();
+        music->playing = false;
     }
-
-};                             // Pause music playing
+};                          // Pause music playing
 void ResumeMusicStream(Music *music)
 {
     if (music->playing == false)
@@ -309,4 +312,8 @@ void SetMusicPan(Music *music, float pan)
 float GetMusicTimeLength(Music music){}//todo figure out how to do this};                          // Get music time length (in seconds)
 float GetMusicTimePlayed(Music music){}//todo add a timer};
 
+void SetMasterVolume(float volume)
+{
+    AS_SetMasterVolume(volume * 127);
+}
 //AUDIOSTREAM IS BROKEN ASLIB READS FROM THE SD CARD DURING AN INTERRUPT BUT IT IS BROKEN*/

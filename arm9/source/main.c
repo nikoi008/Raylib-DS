@@ -26,7 +26,7 @@ void rshapes()
     }
 
     DrawLineDashed((Vector2){130,10},(Vector2){180,10},4,2,RED);
-    DrawLineEx((Vector2){190,10},(Vector2){240,15},5,YELLOW);
+    DrawLineEx((Vector2){190,10},(Vector2){240,15}, 5,YELLOW);
 
     Vector2 points[7] = {{130, 35},{145, 20},{160, 35},{175, 20},{190, 35},{205, 20},{220, 35}};
     DrawLineStrip(points,7,PURPLE);
@@ -206,17 +206,65 @@ void camera2D()
 
 }
 #include "raudio_ds.h"
+Music m1;
+Sound wav1;
+Sound wav2;
+void loadSongs()
+{
+    //load one .wv and 2 .wavs
+   // m1 = LoadMusicStream("nitro:/test.wv");
+   // wav1 = LoadSound("nitro:/wav1.wav");
+    //wav2 = LoadSound("nitro:/wav2.wav");
+}
+void raudio()
+{
+    //x to play mp3/pause
+    //y to play/pause wav1
+    //a to play/pause wav2
+    //b to stop all
+    //touchscreen x to change volume
+        if (IsKeyReleased(KEY_X))
+        {
+            if (IsMusicStreamPlaying(&m1)) PauseMusicStream(&m1);
+            else PlayMusicStream(&m1);
+
+        }
+    if (IsKeyReleased(KEY_Y))
+    {
+        if (IsSoundPlaying(wav1)) PauseSound(wav1);
+        else PlaySound(wav1);
+    }
+    if (IsKeyReleased(KEY_A))
+    {
+        if (IsSoundPlaying(wav2)) PauseSound(wav2);
+        else PlaySound(wav2);
+    }
+
+    if (IsKeyReleased(KEY_B))
+    {
+        StopSound(wav1);
+        StopSound(wav2);
+        StopMusicStream(&m1);
+    }
+    
+
+
+}
 int main()
 {
 
     InitWindow(256,192,"w");
     InitAudioDevice();
-    char* dat;
-    int size;
-    dat = LoadFileData("fat:/test.wv",&size);
-    AS_MP3DirectPlay(dat,size);
+
     //PlayMusicStream(&m);
     //PlaySound(s);
+
+    loadSongs();
+    //PlaySound(wav2);
+    m1.mData = LoadFileData("nitro:/test.wv",&m1.mSize);
+  AS_MP3DirectPlay(m1.mData,m1.mSize);
+
+
     while (!WindowShouldClose())
     {
         BeginDrawing();
@@ -224,6 +272,7 @@ int main()
         //rshapes();
         //rtexture();
         //camera2D();
+        raudio();
         EndDrawing();
     }
 
