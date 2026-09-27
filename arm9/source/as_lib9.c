@@ -432,8 +432,13 @@ void AS_MP3Unpause() {
 /// stop an mp3
 void AS_MP3Stop() {
 	ipcSound->mp3.cmd = MP3CMD_STOP;
-    FILE_CLOSE(mp3file);
-    mp3file = NULL; ///VNDS Edit
+    //FILE_CLOSE(mp3file);
+    //mp3file = NULL; ///VNDS Edit
+
+    if (mp3file) {
+        FILE_CLOSE(mp3file);
+        mp3file = NULL;
+    }//changed this in raylib ds
 }
 
 /// get the current mp3 status
