@@ -177,7 +177,7 @@ void camera2D()
 
     DrawRectangleRec(player, RED);
 
-    DrawLine((int)camera.target.x, -screenHeight*10, (int)camera.target.x, screenHeight*10, GREEN);
+    DrawLine((int)camera.target.x,-screenHeight*10, (int)camera.target.x, screenHeight*10, GREEN);
     DrawLine(-screenWidth*10, (int)camera.target.y, screenWidth*10, (int)camera.target.y, GREEN);
 
     EndMode2D();
@@ -223,35 +223,57 @@ void raudio()
     //a to play/pause wav2
     //b to stop all
     //touchscreen x to change volume
-        if (IsKeyReleased(KEY_X))
-        {
-            if (IsMusicStreamPlaying(m1)) PauseMusicStream(m1);
-            else PlayMusicStream(m1);
-
-        }
+    if (IsKeyReleased(KEY_X))
+    {
+        int st = AS_GetMP3Status();
+        if (st & MP3ST_PLAYING)PauseMusicStream(m1);
+        else if (st & MP3ST_PAUSED)ResumeMusicStream(m1);
+        else PlayMusicStream(m1); //todo implement Mp3status later
+    }
     if (IsKeyReleased(KEY_Y))
     {
-        printf("released\n");
-        if (IsSoundPlaying(wav1)) PauseSound(wav1);
+        if (IsSoundPlaying(wav1))PauseSound(wav1);
         else PlaySound(wav1);
     }
     if (IsKeyReleased(KEY_A))
     {
-        printf("released\n");
         PlaySound(wav2);
     }
-
     if (IsKeyReleased(KEY_B))
     {
-        printf("released\n");
-       // StopSound(wav1);
-       // StopSound(wav2);
-       // StopMusicStream(m1);
+        if (wav1.state->playing) {StopSound(wav1); wav1.state->playing = false;}
+        if (wav2.state->playing) {StopSound(wav2); wav2.state->playing = false; }
+        if (m1.s->playing){StopMusicStream(m1); m1.s->playing = false; }
     }
-    
+
+    int x = GetTouchX();
+    int y = GetTouchY();
+    if ( x > 0 || y > 0) SetMasterVolume(x / 255.0f);
 
 
+    int mp3st = AS_GetMP3Status();
+    const char *mp3label = (mp3st & MP3ST_PLAYING) ? "PLAYING" : (mp3st & MP3ST_PAUSED)  ? "PAUSED"  : "STOPPED";
+
+    DrawText("Sound demo",10,10,1,WHITE);
+    DrawText("X: music play/pause   Y: wav1 play/pause",10,40,1,GRAY);
+    DrawText("A: wav2 one-shot  B: stop all",10,60,1,GRAY);
+    DrawText("Touch screen",10,80,1,GRAY);
+    DrawText(": master volume",10,100,1,GRAY);
+
+
+    char buf[64];
+    sprintf(buf,"music: %s",mp3label);
+    DrawText(buf,10,120,1,YELLOW);
+
+    sprintf(buf,"wav1: %s",IsSoundPlaying(wav1) ? "playing" : "stopped");
+    DrawText(buf,10,160,1,YELLOW);
+
+    sprintf(buf,"wav2: %s",IsSoundPlaying(wav2) ? "playing" : "stopped");
+    DrawText(buf,10,180,1,YELLOW);
 }
+
+
+
 int main()
 {
 

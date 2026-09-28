@@ -100,7 +100,7 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
         w.s.size = size;
         w.s.volume = 127;
         w.s.pan = 127;
-        w.s.loop = 1;
+        w.s.loop = 0;
         w.basePitch = w.s.rate;
         w.s.priority = 0;
         w.s.delay = 0;
@@ -210,7 +210,8 @@ void UpdateSounds(){ return;};//todo see the situation iwt4h tis //todo rename a
 
 bool IsSoundPlaying(Sound sound)
 {
-    if (sound.state->channel >= 0) return true;
+
+    if (sound.state->channel >= 0) if (ipcSound->chan[sound.state->channel].busy == true) return true;
     return false;
 };
 void SetSoundVolume(Sound sound, float volume)
