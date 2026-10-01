@@ -36,7 +36,7 @@ void UnloadFont(Font font);
 int drawChar(Font* f, Vector2 pos, char c, Color col, float size);
 void drawString(Font* f, Vector2 pos, char* s, Color col, int spacing, float size);
 void DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint);
-void DrawText(const char *text, int posX, int posY, int fontSize, Color color);
+void DrawText(const char *text, int posX, int posY, float fontSize, Color color);
 void SetTextLineSpacing(int spacing);
 int MeasureText(const char *text, int fontSize);
 Vector2 MeasureTextEx(Font font, const char *text, float fontSize, float spacing);

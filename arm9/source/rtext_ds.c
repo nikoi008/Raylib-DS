@@ -119,7 +119,7 @@ void DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, f
 
 }
 
-void DrawText(const char *text, int posX, int posY, int fontSize, Color color)
+void DrawText(const char *text, int posX, int posY, float fontSize, Color color)
 {
     drawString(&DS.fontDefault,(Vector2){(float)posX,(float)posY},text,color,1,(float)fontSize);
 }
