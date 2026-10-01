@@ -99,13 +99,13 @@ Image LoadImageAnim(const char* filename, int frames)
 Image processPPM(unsigned char* fileData,int dataSize)
 {
     u8 *gfx;
-    u16 *pal;
+    u16 *pal = malloc(sizeof(u16) * 256);
     Vector2 size;
     int palTotal = 0;
    if (fileData != NULL)
     {
         printf("data ok");
-        pal = malloc(sizeof(u16) * 255);
+       // pal = malloc(sizeof(u16) * 255);
 
 
         int idx = 0;
@@ -205,6 +205,7 @@ Image processPng(unsigned char* image, int height, int width)
     if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); /*return (Image){0} ;*/}
 
     u16* pal = malloc(sizeof(u16) * 256);
+
     pal[0] = ARGB16(1, image[0]TO5BITS, image[1]TO5BITS, image[2]TO5BITS);
     int palTotal = 1;
 
@@ -227,7 +228,7 @@ Image processPng(unsigned char* image, int height, int width)
             }
             if (uniqueCol)
             {
-                if (palTotal >= 255) { TRACELOG(LOG_WARNING, "IMAGE: TOO MANY COLOURS -- MAX 255"); continue; }
+                if (palTotal >= 256) { TRACELOG(LOG_WARNING, "IMAGE: TOO MANY COLOURS -- MAX 255 CURRENT %d",palTotal); break; }
                 pal[palTotal++] = col15;
             }
 
@@ -338,6 +339,7 @@ void UnloadTexture(Texture2D texture)
 }
 void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tint)
 {
+
     if (frame < 0 || frame >= texture.frames) frame = 0;
     glSprite(posX, posY, GL_FLIP_NONE, &texture.image[frame]);
 }
@@ -467,7 +469,7 @@ Image GenImageColor(int width, int height, Color color)
     i.frames = 1;
     i.colors = 1;
     i.gfx = malloc(sizeof(u8) * gfxHeight * gfxWidth);
-    i.pal = malloc(sizeof(u16));
+   // i.pal = malloc(sizeof(u16));
     i.pal[0] = ARGB16(1,color.r TO5BITS, color.g TO5BITS, color.b TO5BITS);
     for (int y = 0; y < gfxHeight; y++)
     {

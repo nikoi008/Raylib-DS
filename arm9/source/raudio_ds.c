@@ -129,6 +129,7 @@ Sound LoadSoundFromWave(Wave wave)
     Sound s;
     s.state = malloc(sizeof(SoundState));
     s.state->s = wave.s;
+    s.state->channel = -1;
     s.state->alias = false;
     s.state->id = -1;
     s.state->playing = false;

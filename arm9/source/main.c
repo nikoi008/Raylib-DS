@@ -1,4 +1,3 @@
-
 #include "rcore_ds.h"
 #include "lodepng.h"
 #include <string.h>
@@ -7,6 +6,7 @@
 #define BLACK (Color){0,0,0}
 #define TO5BITS >>3 //useless macro go brrr
 #include "rtext_ds.h"
+
 void rshapes()
 {
     for (int y = 10; y < 40; y += 2)
@@ -59,34 +59,39 @@ void rshapes()
     DrawText("Shapes demo",10,160,1,WHITE);
 }
 
-
-
 Texture2D person;
 Texture2D tile;
 Texture2D bug;
+Texture2D bigTexture;
 void loadTextures()
 {
 
     Image i = LoadImageAnim("nitro:/player.png",10);
     person = LoadTextureAnimFromImage(i);
-    //tile = LoadTexture("nitro:/tileSprites.png");
+    UnloadImage(i);
+    tile = LoadTexture("nitro:/tileSprites.png");
     bug = LoadTexture("nitro:/aphid.png");
+    bigTexture = LoadTexture("nitro:/neon.png");
 
 }
 
+#include <malloc.h>
 
 void rtexture()
 {
 
     static int i,j;
     j++;
+    if (j % 5 == 0)
+        i++;
+    DrawTexture(bigTexture,0,0,WHITE);
 
-   // DrawTexture(bug, 100,100, RED);
+   DrawTexture(bug, 160,160, RED);
 
-    DrawTextureAnim(person,i % 10,10,10,WHITE);
+   DrawTextureAnim(person,i % 10,10,150,WHITE);
     DrawTextureAnim(person,5,100,50,WHITE);
-    DrawTextureEx(bug,(Vector2){50,26},0,2,WHITE);
-    //DrawTextureAnim(player,8,50,50,WHITE);
+    DrawTextureEx(bug,(Vector2){160,100},j % 360,0.05f * (j % 100),WHITE);
+
 }
 
 Camera2D camera;
@@ -207,14 +212,13 @@ void camera2D()
 }
 #include "raudio_ds.h"
 Music m1;
-Sound wav1;
+
 Sound wav2;
 void loadSongs()
 {
     //load one .wv and 2 .wavs
-    m1 = LoadMusicStream("nitro:/test.wv");
-   wav1 = LoadSound("nitro:/wav1.wav");
-    wav2 = LoadSound("nitro:/wav2.wav");
+    m1 = LoadMusicStream("nitro:/sample1.wv");
+    wav2 = LoadSound("nitro:/wav1.wav");
 }
 void raudio()
 {
@@ -230,18 +234,13 @@ void raudio()
         else if (st & MP3ST_PAUSED)ResumeMusicStream(m1);
         else PlayMusicStream(m1); //todo implement Mp3status later
     }
-    if (IsKeyReleased(KEY_Y))
-    {
-        if (IsSoundPlaying(wav1))PauseSound(wav1);
-        else PlaySound(wav1);
-    }
+
     if (IsKeyReleased(KEY_A))
     {
         PlaySound(wav2);
     }
     if (IsKeyReleased(KEY_B))
     {
-        if (wav1.state->playing) {StopSound(wav1); wav1.state->playing = false;}
         if (wav2.state->playing) {StopSound(wav2); wav2.state->playing = false; }
         if (m1.s->playing){StopMusicStream(m1); m1.s->playing = false; }
     }
@@ -253,50 +252,78 @@ void raudio()
 
     int mp3st = AS_GetMP3Status();
     const char *mp3label = (mp3st & MP3ST_PLAYING) ? "PLAYING" : (mp3st & MP3ST_PAUSED)  ? "PAUSED"  : "STOPPED";
-
-    DrawText("Sound demo",10,10,1,WHITE);
-    DrawText("X: music play/pause   Y: wav1 play/pause",10,40,1,GRAY);
-    DrawText("A: wav2 one-shot  B: stop all",10,60,1,GRAY);
-    DrawText("Touch screen",10,80,1,GRAY);
-    DrawText(": master volume",10,100,1,GRAY);
+    DrawTextEx(DS.fontDefault,"Sound demo",(Vector2){10,10},0.7,1,WHITE);
+    DrawTextEx(DS.fontDefault,"X: music play/pause",(Vector2){10,20},0.7,1,GRAY);
+    DrawTextEx(DS.fontDefault,"A: play wav2 B: stop all",(Vector2){10,30},0.7,1,GRAY);
+    DrawTextEx(DS.fontDefault,"Touch screen: master volume",(Vector2){10,40},0.7,1,GRAY);
 
 
     char buf[64];
     sprintf(buf,"music: %s",mp3label);
-    DrawText(buf,10,120,1,YELLOW);
+    DrawText(buf,10,60,1,YELLOW);
 
-    sprintf(buf,"wav1: %s",IsSoundPlaying(wav1) ? "playing" : "stopped");
-    DrawText(buf,10,160,1,YELLOW);
+    //sprintf(buf,"wav1: %s",IsSoundPlaying(wav1) ? "playing" : "stopped");
+   // DrawText(buf,10,80,1,YELLOW);
 
     sprintf(buf,"wav2: %s",IsSoundPlaying(wav2) ? "playing" : "stopped");
-    DrawText(buf,10,180,1,YELLOW);
+    DrawText(buf,10,100,1,YELLOW);
 }
+Font mono;
+void rtext()
+{
+    static float size = 1.0f;
+    if (size > 2.0f) size -= 1;
+    size += 0.05f;
+    DrawText("default font",0,0,1,WHITE);
+    DrawTextEx(DS.fontDefault,"scaling",(Vector2){0,50},size,1,RED);
+    DrawTextEx(mono,"custom fonts <- jetbrains mono",(Vector2){0,90},1,1,YELLOW);
+    //DrawTextEx(DS.fontDefault,"current font",(Vector2){0,0},1,1,WHITE);
+    
 
+
+}
 
 
 int main()
 {
-
     InitWindow(256,192,"w");
     InitAudioDevice();
-
-    //PlayMusicStream(&m);
-    //PlaySound(s);
-
+    loadTextures();
     loadSongs();
-    //PlaySound(wav2);
-    int s;
+    mono = LoadFont("mono.fnt");
+    int currentDemo = 1;
+    const char* demos[] = {"rshapes","rtexture","camera2D","raudio","rtext"};
+    int numDemos = 5;
+    
+   initCamera2Dexample();
     
     while (!WindowShouldClose())
     {
+        if(IsKeyPressed(KEY_LEFT)||IsKeyPressed(KEY_SELECT))
+        {
+            currentDemo--;
+            if(currentDemo < 0) currentDemo = numDemos - 1;
+        }
+        if(IsKeyPressed(KEY_RIGHT)||IsKeyPressed(KEY_START))
+        {
+            currentDemo++;
+            if(currentDemo >= numDemos) currentDemo = 0;
+        }
+
         BeginDrawing();
         ClearBackground(BLACK);
-        printf("running");
-        //rshapes();
-        //rtexture();
-        //camera2D();
-        raudio();
+      //  printf("running");
+        switch(currentDemo)
+        {
+            case 0: raudio(); break;
+            case 1: rtext(); break;
+            case 2: rtexture(); break;
+            case 3: rshapes(); break;
+            case 4: camera2D(); break;
+        }
+
+        //DrawTextEx(DS.fontDefault,demos[currentDemo],(Vector2){100,100},1.0,1.0,WHITE);
+
         EndDrawing();
     }
-
-} 
+}
