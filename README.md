@@ -67,3 +67,5 @@ Then just open up your projects' directory, use the template makefile in the rep
 This project is licensed under the zlib/libpng license
 
 
+# Documentation  
+I will add documentation as the library progresses, since there are some DS specific functions that people can find useful. They are found in [DOCS.md](DOCS.md)
