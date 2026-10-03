@@ -110,13 +110,13 @@ Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int data
     }
     else
     {
-        printf("Failed to load");
+        //printf("Failed to load");
         return (Wave){0};
     }
 }
 Wave LoadWave(const char* fileName)
 {
-    printf(" filename %s\n",fileName); //prints 9
+    //printf(" filename %s\n",fileName); //prints 9
     int datasize;
     unsigned char* data = LoadFileData(fileName,&datasize);
     return LoadWaveFromMemory(GetFileExtension(fileName),data,datasize);
@@ -187,7 +187,7 @@ void PlaySound(Sound sound)
 {
 
     sound.state->channel = AS_SoundPlay(sound.state->s);
-    printf("\n\n Playing channel %d", sound.state->channel);
+    //printf("\n\n Playing channel %d", sound.state->channel);
     if (sound.state->channel >= 0)
     {
         sound.state->playing = true;

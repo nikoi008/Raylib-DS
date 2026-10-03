@@ -1,329 +1,224 @@
-#include "rcore_ds.h"
-#include "lodepng.h"
-#include <string.h>
+
+#include <nds.h>
+#include <gl2d.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include "rcore_ds.h"
+#include "raudio_ds.h"
 
-#define BLACK (Color){0,0,0}
-#define TO5BITS >>3 //useless macro go brrr
-#include "rtext_ds.h"
+#define PADDLE_SPEED 3
 
-void rshapes()
+#define BASE_SPEED 600
+#define INCREMENT 4
+#define MAX_SPEED 700
+
+
+#define BRICK_H 16
+#define BRICK_COLS 8
+#define BRICK_ROWS 5
+#define BRICK_TOP 24
+
+#define FP_SHIFT 8
+#define FP(n) ((n) << FP_SHIFT)
+#define UNFP(n) ((n) >> FP_SHIFT)
+
+typedef enum { ST_READY, ST_PLAY, ST_PAUSED, ST_LOST, ST_WON } GameState;
+
+GameState state;
+bool alive[BRICK_ROWS][BRICK_COLS];
+int bricksLeft;
+int paddleX;
+int ballX,ballY;
+int ballVX,ballVY;
+int lives;
+
+Texture2D paddleTex,pumpkinTex,ballTex;
+Sound hitSnd;
+
+int iabs(int v) { return v < 0 ? -v : v; }
+
+int currentSpeed(void)
 {
-    for (int y = 10; y < 40; y += 2)
+    int broken = BRICK_ROWS * BRICK_COLS - bricksLeft;
+    int s = BASE_SPEED + broken * INCREMENT;
+    return s > MAX_SPEED ? MAX_SPEED : s;
+}
+
+void resetBallOnPaddle(void)
+{
+    ballX = FP(paddleX + (32 - 8) / 2);
+    ballY = FP(168 - 8);
+    ballVX = 0;
+    ballVY = 0;
+    state = ST_READY;
+}
+
+void resetGame(void)
+{
+    for (int r = 0; r < BRICK_ROWS; r++)
+        for (int c = 0; c < BRICK_COLS; c++)
+            alive[r][c] = true;
+    bricksLeft = BRICK_ROWS * BRICK_COLS;
+    lives = 3;
+    paddleX = (256 - 32) / 2;
+    resetBallOnPaddle();
+}
+
+void launchBall(void)
+{
+    int s = currentSpeed();
+    ballVX = (GetRandomValue(0,1) ? 1 : -1) * (s / 3);
+    ballVY = -(s - iabs(ballVX) / 3);
+    state = ST_PLAY;
+}
+
+bool hitBrick(int px, int py)
+{
+    int c0 = px / 32,c1 = (px + 8 - 1) / 32;
+    int r0 = (py - BRICK_TOP) / BRICK_H,r1 = (py + 8 - 1 - BRICK_TOP) / BRICK_H;
+    if (py - BRICK_TOP < 0) r0 = (py - BRICK_TOP - BRICK_H + 1) / BRICK_H;
+
+    for (int r = r0; r <= r1; r++)
     {
-        for (int x = 10; x < 40; x += 2)
+        for (int c = c0; c <= c1; c++)
         {
-            Color c = {x * 5,y * 6,128};
-            DrawPixel(x,y,c);
+            if (r < 0 || r >= BRICK_ROWS || c < 0 || c >= BRICK_COLS) continue;
+            if (!alive[r][c]) continue;
+            alive[r][c] = false;
+            bricksLeft--;
+            PlaySound(hitSnd);
+            return true;
         }
     }
-    int r = 10;
-    for (int y = 10; y < 40; y += 3)
-    {
-
-        DrawLine(50,y,120,y,(Color){ r,y * 3, 64});
-        r += 2;
-    }
-
-    DrawLineDashed((Vector2){130,10},(Vector2){180,10},4,2,RED);
-    DrawLineEx((Vector2){190,10},(Vector2){240,15}, 5,YELLOW);
-
-    Vector2 points[7] = {{130, 35},{145, 20},{160, 35},{175, 20},{190, 35},{205, 20},{220, 35}};
-    DrawLineStrip(points,7,PURPLE);
-
-    DrawCircle(10 + 16,45 + 16,16,GREEN);
-    DrawCircleLines(50 + 16, 45 + 16,16, ORANGE);
-    DrawCircleGradient((Vector2){90 + 16, 45 + 16},16,YELLOW,RED);
-
-    DrawEllipse(130 + 24, 45 + 14, 24,14,PINK);
-    DrawEllipseLines(190 + 24, 45 + 14, 24,14,BLUE);
-
-    DrawRectangle(10,85,50,25,RED);
-    DrawRectangleGradientH(65,85,50,25,WHITE,PURPLE);
-    DrawRectangleGradientEx((Rectangle){120,85,50,25,},RED,WHITE,GREEN,BLUE);
-    DrawRectangleLines(175,85,50,25,MAGENTA);
-    
-    DrawTriangle((Vector2){22,118},(Vector2){5,152},(Vector2){40,152},RED);
-
-    DrawTriangleLines((Vector2){62,118},(Vector2){45,152}, (Vector2){80,152},YELLOW);
-
-    Vector2 fan[5] = {{105,135},{85,152},{85,118},{125,118},{125,152}};
-    DrawTriangleFan(fan,5,GREEN);
-
-    Vector2 strip[7] = {{130,152},{137,118},{145,152},{152,118},{160,152},{167,118},{175,152}};
-    DrawTriangleStrip(strip,7,BLUE);
-
-    DrawPoly((Vector2){195,135},6,16,0,ORANGE);
-    DrawPolyLines((Vector2){232,135},5,16,30,MAGENTA);
-
-    DrawText("Shapes demo",10,160,1,WHITE);
+    return false;
 }
 
-Texture2D person;
-Texture2D tile;
-Texture2D bug;
-Texture2D bigTexture;
-void loadTextures()
+void updatePaddle(void)
 {
-
-    Image i = LoadImageAnim("nitro:/player.png",10);
-    person = LoadTextureAnimFromImage(i);
-    UnloadImage(i);
-    tile = LoadTexture("nitro:/tileSprites.png");
-    bug = LoadTexture("nitro:/aphid.png");
-    bigTexture = LoadTexture("nitro:/neon.png");
-
+    if (IsKeyDown(KEY_LEFT)) paddleX -= PADDLE_SPEED;
+    if (IsKeyDown(KEY_RIGHT)) paddleX += PADDLE_SPEED;
+    if (paddleX < 0) paddleX = 0;
+    if (paddleX > 256 - 32) paddleX = 256 - 32;
 }
 
-#include <malloc.h>
-
-void rtexture()
+void updateBall(void)
 {
+    int nx = ballX + ballVX;
+    int px = UNFP(nx), py = UNFP(ballY);
 
-    static int i,j;
-    j++;
-    if (j % 5 == 0)
-        i++;
-    DrawTexture(bigTexture,0,0,WHITE);
+    if (px < 0) { nx = 0; ballVX = iabs(ballVX); }
+    else if (px > 256 - 8){ nx = FP(256 - 8); ballVX = -iabs(ballVX); }
+    else if (hitBrick(px, py)) { ballVX = -ballVX; nx = ballX; }
+    ballX = nx;
 
-   DrawTexture(bug, 160,160, RED);
+    int ny = ballY + ballVY;
+    px = UNFP(ballX); py = UNFP(ny);
 
-   DrawTextureAnim(person,i % 10,10,150,WHITE);
-    DrawTextureAnim(person,5,100,50,WHITE);
-    DrawTextureEx(bug,(Vector2){160,100},j % 360,0.05f * (j % 100),WHITE);
+    if (py < 0)
+    {
+        ny = 0;
+        ballVY = iabs(ballVY);
+    }
+    else if (hitBrick(px, py))
+    {
+        ballVY = -ballVY;
+        ny = ballY;
+    }
+    else if (ballVY > 0 && py + 8 >= 168 && py + 8 <= 168 + 16 &&px + 8 > paddleX && px < paddleX + 32)
+    {
+        int off = (px + 8 / 2) - (paddleX + 32 / 2);
+        int s = currentSpeed();
+        ballVX = off * s / 24;
+        ballVY = - (s - iabs(ballVX) / 3);
+        if (ballVY > -200) ballVY = -200;
+        ny = FP(168 - 8);
+    }
+    ballY = ny;
 
+    if (UNFP(ballY) > 192)
+    {
+        lives--;
+        if (lives <= 0) { lives = 0; state = ST_LOST; }
+        else resetBallOnPaddle();
+    }
+
+    if (bricksLeft == 0) state = ST_WON;
 }
 
-Camera2D camera;
-Rectangle player = {0};
-void cameraInput()
+void update(void)
 {
+    bool a = IsKeyPressed(KEY_A);
 
-    if (IsKeyDown(KEY_RIGHT)) player.x += 2;
-    else if (IsKeyDown(KEY_LEFT)) player.x -= 2;
-    if (IsKeyDown(KEY_DOWN)) player.y += 2;
-    else if (IsKeyDown(KEY_UP)) player.y  -= 2;
-
-    // Camera target follows player
-    camera.target = (Vector2){ player.x + 20, player.y + 20 };
-
-    // Camera rotation controls
-    if (IsKeyDown(KEY_A)) camera.rotation--;
-    else if (IsKeyDown(KEY_B)) camera.rotation++;
-
-    // Limit camera rotation to 80 degrees (-40 to 40)
-    if (camera.rotation > 40) camera.rotation = 40;
-    else if (camera.rotation < -40) camera.rotation = -40;
-
-    // Camera zoom controls
-    // Uses log scaling to provide consistent zoom speed
-    //camera.zoom = expf(logf(camera.zoom) + ((float)GetMouseWheelMove()*0.1f));
-
-    if (camera.zoom > 3.0f) camera.zoom = 3.0f;
-    else if (camera.zoom < 0.1f) camera.zoom = 0.1f;
-    // Camera reset (zoom and rotation)
-
-    if (IsKeyPressed(KEY_Y))
+    switch (state)
     {
-        camera.zoom = 1.0f;
-        camera.rotation = 0.0f;
-    }
-    
-    if (IsKeyPressed(KEY_R))
-    {
-        camera.zoom += 0.1f;
-    }
+        case ST_READY:
+            updatePaddle();
+            ballX = FP(paddleX + (32 - 8) / 2);
+            if (a) launchBall();
+            break;
 
-    if (IsKeyPressed(KEY_L))
-    {
-        camera.zoom -= 0.1f;
+        case ST_PLAY:
+            if (a) { state = ST_PAUSED; break; }
+            updatePaddle();
+            updateBall();
+            break;
+
+        case ST_PAUSED:
+            if (a) state = ST_PLAY;
+            break;
+
+        case ST_LOST:
+        case ST_WON:
+            if (a) resetGame();
+            break;
     }
 }
-const int screenWidth = 256;
-const int screenHeight = 192;
-#define MAX_BUILDINGS   100
-Rectangle buildings[MAX_BUILDINGS] = { 0 };
-Color buildColors[MAX_BUILDINGS] = { 0 };
-void initCamera2Dexample(){
-    int spacing = 0;
 
-    for (int i = 0; i < MAX_BUILDINGS; i++)
-    {
-        buildings[i].width = GetRandomValue(50, 200);
-        buildings[i].height = GetRandomValue(100, 800);
-        buildings[i].y = screenHeight - 130 - buildings[i].height;
-        buildings[i].x = -6000 + spacing;
-
-        spacing += (int)buildings[i].width;
-
-        buildColors[i] = (Color){
-            (unsigned char)GetRandomValue(200, 240),
-            (unsigned char)GetRandomValue(200, 240),
-            (unsigned char)GetRandomValue(200, 250),
-            255};
-    }
-
-    //Camera2D camera = { 0 };
-    player.width = 8;
-    player.height = 8;
-    camera.target = (Vector2){ player.x + 20.0f, player.y + 20.0f };
-    camera.offset = (Vector2){ screenWidth/2.0f, screenHeight/2.0f };
-    camera.rotation = 0.0f;
-    camera.zoom = 1.0f;}
-void camera2D()
+void draw(void)
 {
-    BeginMode2D(camera);
-    cameraInput();
 
+    for (int r = 0; r < BRICK_ROWS; r++)
+        for (int c = 0; c < BRICK_COLS; c++)
+            if (alive[r][c]) DrawTexture(pumpkinTex,c * 32,BRICK_TOP + r * BRICK_H,WHITE);
 
-    DrawRectangle(-6000, 320, 13000, 8000, DARKGRAY);
+    DrawTexture(paddleTex,paddleX,168,WHITE);
+    DrawTexture(ballTex,UNFP(ballX),UNFP(ballY),WHITE);
 
-    for (int i = 0; i < MAX_BUILDINGS; i++) DrawRectangleRec(buildings[i], buildColors[i]);
+    for (int i = 0; i < lives; i++)
+        DrawTexture(ballTex,4 + i * 12,6,WHITE);
 
-    DrawRectangleRec(player, RED);
-
-    DrawLine((int)camera.target.x,-screenHeight*10, (int)camera.target.x, screenHeight*10, GREEN);
-    DrawLine(-screenWidth*10, (int)camera.target.y, screenWidth*10, (int)camera.target.y, GREEN);
-
-    EndMode2D();
-
-    DrawText("SCREEN AREA", 640, 10, 1, RED);
-
-    DrawRectangle(0, 0, screenWidth, 5, RED);
-    DrawRectangle(0, 5, 5, screenHeight - 10, RED);
-    DrawRectangle(screenWidth - 5, 5, 5, screenHeight - 10, RED);
-    DrawRectangle(0, screenHeight - 5, screenWidth, 5, RED);
-
-   // DrawRectangle( 10, 10, 250, 113, SKYBLUE);
-   // DrawRectangleLines( 10, 10, 250, 113, BLUE);
-
-    DrawTextEx(DS.fontDefault,"Free 2D camera controls:",(Vector2){10,20}, 0.5, 0.5, GRAY);
-    DrawTextEx(DS.fontDefault,"- Right/Left to move player",(Vector2){10,30}, 0.5, 0.5, GRAY);
-    DrawTextEx(DS.fontDefault,"- Triggers for zoom in and out",(Vector2){10,40}, 0.5, 0.5, GRAY);
-    DrawTextEx(DS.fontDefault,"A/B to Rotate",(Vector2){10,50}, 0.5, 0.5, GRAY);
-    DrawTextEx(DS.fontDefault,"X to reset zoom and rotation",(Vector2){10,60}, 0.5, 0.5, GRAY);
-
-  //  DrawText("- Right/Left to move player", 10, 40, 0.5, DARKGRAY);
-   // DrawText("- Mouse Wheel to Zoom in-out", 10, 60, 0.5, DARKGRAY);
-   // DrawText("- A / S to Rotate", 40, 80, 10, DARKGRAY);
-   // DrawText("- R to reset Zoom and Rotation", 40, 100, 0.5, DARKGRAY);
-
-
-}
-#include "raudio_ds.h"
-Music m1;
-
-Sound wav2;
-void loadSongs()
-{
-    //load one .wv and 2 .wavs
-    m1 = LoadMusicStream("nitro:/sample1.wv");
-    wav2 = LoadSound("nitro:/wav1.wav");
-}
-void raudio()
-{
-    //x to play mp3/pause
-    //y to play/pause wav1
-    //a to play/pause wav2
-    //b to stop all
-    //touchscreen x to change volume
-    if (IsKeyReleased(KEY_X))
-    {
-        int st = AS_GetMP3Status();
-        if (st & MP3ST_PLAYING)PauseMusicStream(m1);
-        else if (st & MP3ST_PAUSED)ResumeMusicStream(m1);
-        else PlayMusicStream(m1); //todo implement Mp3status later
-    }
-
-    if (IsKeyReleased(KEY_A))
-    {
-        PlaySound(wav2);
-    }
-    if (IsKeyReleased(KEY_B))
-    {
-        if (wav2.state->playing) {StopSound(wav2); wav2.state->playing = false; }
-        if (m1.s->playing){StopMusicStream(m1); m1.s->playing = false; }
-    }
-
-    int x = GetTouchX();
-    int y = GetTouchY();
-    if ( x > 0 || y > 0) SetMasterVolume(x / 255.0f);
-
-
-    int mp3st = AS_GetMP3Status();
-    const char *mp3label = (mp3st & MP3ST_PLAYING) ? "PLAYING" : (mp3st & MP3ST_PAUSED)  ? "PAUSED"  : "STOPPED";
-    DrawTextEx(DS.fontDefault,"Sound demo",(Vector2){10,10},0.7,1,WHITE);
-    DrawTextEx(DS.fontDefault,"X: music play/pause",(Vector2){10,20},0.7,1,GRAY);
-    DrawTextEx(DS.fontDefault,"A: play wav2 B: stop all",(Vector2){10,30},0.7,1,GRAY);
-    DrawTextEx(DS.fontDefault,"Touch screen: master volume",(Vector2){10,40},0.7,1,GRAY);
-
-
-    char buf[64];
-    sprintf(buf,"music: %s",mp3label);
-    DrawText(buf,10,60,1,YELLOW);
-
-    //sprintf(buf,"wav1: %s",IsSoundPlaying(wav1) ? "playing" : "stopped");
-   // DrawText(buf,10,80,1,YELLOW);
-
-    sprintf(buf,"wav2: %s",IsSoundPlaying(wav2) ? "playing" : "stopped");
-    DrawText(buf,10,100,1,YELLOW);
-}
-Font mono;
-void rtext()
-{
-    static float size = 1.0f;
-    if (size > 2.0f) size -= 1;
-    size += 0.05f;
-    DrawText("default font",0,0,1,WHITE);
-    DrawTextEx(DS.fontDefault,"scaling",(Vector2){0,50},size,1,RED);
-    DrawTextEx(mono,"custom fonts <- jetbrains mono",(Vector2){0,90},1,1,YELLOW);
-    //DrawTextEx(DS.fontDefault,"current font",(Vector2){0,0},1,1,WHITE);
-    
-
-
+    if (state == ST_READY) DrawText("PRESS A TO START",80,120,0.7f,WHITE);
+    if (state == ST_PAUSED) DrawText("PAUSED",108,120,0.7f,WHITE);
+    if (state == ST_LOST) DrawText("GAME OVER. PRESS A TO RETRY",20,120,0.7f,RED);
+    if (state == ST_WON) DrawText("YOU WIN. PRESS A TO PLAY AGAIN",48,120,0.7f,YELLOW);
 }
 
-
-int main()
+int main(void)
 {
-    InitWindow(256,192,"w");
+    InitWindow(256, 192, "spooks");
     InitAudioDevice();
-    loadTextures();
-    loadSongs();
-    mono = LoadFont("mono.fnt");
-    int currentDemo = 1;
-    const char* demos[] = {"rshapes","rtexture","camera2D","raudio","rtext"};
-    int numDemos = 5;
-    
-   initCamera2Dexample();
-    
+    SetMasterVolume(1.0f);
+    SetRandomSeed((unsigned int)time(NULL));
+
+    paddleTex  = LoadTexture("nitro:/paddle.png");
+    pumpkinTex = LoadTexture("nitro:/pumpkin.png");
+    ballTex = LoadTexture("nitro:/ball.png");
+    hitSnd = LoadSound("nitro:/hit.wav");
+
+    printf("\x1b[2J");
+    printf("\n  LEFT/RIGHT: move paddle\n  A: start/pause/retry\n");
+    printf("\x1b[31;1m\n DONT FORGET TO SET KEYBINDS IN CONFIG->INPUT AND HOTKEYS OTHERWISE THIS GAME WILL NOT WORK\x1b[39;0m");
+    resetGame();
+
     while (!WindowShouldClose())
     {
-        if(IsKeyPressed(KEY_LEFT)||IsKeyPressed(KEY_SELECT))
-        {
-            currentDemo--;
-            if(currentDemo < 0) currentDemo = numDemos - 1;
-        }
-        if(IsKeyPressed(KEY_RIGHT)||IsKeyPressed(KEY_START))
-        {
-            currentDemo++;
-            if(currentDemo >= numDemos) currentDemo = 0;
-        }
-
         BeginDrawing();
         ClearBackground(BLACK);
-      //  printf("running");
-        switch(currentDemo)
-        {
-            case 0: raudio(); break;
-            case 1: rtext(); break;
-            case 2: rtexture(); break;
-            case 3: rshapes(); break;
-            case 4: camera2D(); break;
-        }
-
-        //DrawTextEx(DS.fontDefault,demos[currentDemo],(Vector2){100,100},1.0,1.0,WHITE);
-
+        update();
+        draw();
         EndDrawing();
     }
+
+    return 0;
 }
