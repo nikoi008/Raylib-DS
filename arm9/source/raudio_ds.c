@@ -278,7 +278,7 @@ bool IsMusicStreamPlaying(Music music)
 {
     return music.s->playing;
 };                         // Check if music is playing
-void UpdateMusicStream(Music music);                            // Updates buffers for music streaming todo see what this does -- aslib hadnles this by itself afaik
+void UpdateMusicStream(Music music){return;};                            // Updates buffers for music streaming todo see what this does -- aslib hadnles this by itself afaik
 void StopMusicStream(Music music)
 {
     AS_MP3Stop();
