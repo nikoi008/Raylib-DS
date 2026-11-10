@@ -31,7 +31,6 @@ typedef struct
 }Texture2D;
 void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);
 void DrawTextureRecAndScale(Texture2D texture, Rectangle source, Vector2 position, Color tint,s32 sx, s32 sy);
-
 void UnloadTextureAnim(Texture2D texture);
 Texture2D LoadTextureAnimFromImage(Image im);
 void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tint);

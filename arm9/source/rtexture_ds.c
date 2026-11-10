@@ -6,6 +6,7 @@
 
 #include "rshapes_ds.h"
 
+
 Vector2 getImageSize(const char* buffer)
 {
     Vector2 size;
@@ -96,151 +97,50 @@ Image LoadImageAnim(const char* filename, int frames)
         return (Image){0};
     }
 }
-Image processPPM(unsigned char* fileData,int dataSize)
-{
-    u8 *gfx;
-    u16 *pal = malloc(sizeof(u16) * 256);
-    Vector2 size;
-    int palTotal = 0;
-   if (fileData != NULL)
-    {
-        printf("data ok");
-       // pal = malloc(sizeof(u16) * 255);
-
-
-        int idx = 0;
-        int newlines = 0;
-        while (newlines < 1 && idx < dataSize)
-        {
-            if (fileData[idx] == '\n') newlines++;
-            idx++;
-        }
-        char buffer[64];
-        int bIdx = 0;
-        while (newlines < 2 && idx < dataSize)
-        {
-            buffer[bIdx] = fileData[idx];
-            bIdx++;
-            if (fileData[idx] == '\n') newlines++;
-            idx++;
-        }
-        size = getImageSize(buffer);
-
-        gfx = malloc(sizeof(u8) * (int)size.x * (int)size.y);
-        while (newlines < 3 && idx < dataSize) {
-            if (fileData[idx] == '\n') newlines++;
-            idx++;
-        }
-
-
-
-        for (int i = idx; i < dataSize; i += 3)
-        {
-
-            u16 r5 = fileData[i] >> 3;
-            u16 g5 = fileData[i + 1] >> 3;
-            u16 b5 = fileData[i + 2] >> 3;
-
-            u16 col = ARGB16(1, r5, g5, b5);
-
-            bool found = false;
-            for (int p = 0; p < palTotal; p++)
-            {
-                if (pal[p] == col)
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                if (palTotal <= 256)
-                {
-                    pal[palTotal] = col;
-                    palTotal++; //todo
-
-                }
-            }
-        }
-        int gfxPos = 0;
-        for (int i = idx; i < dataSize;i+= 3)
-        {
-
-            u16 r5 = fileData[i] >> 3;
-            u16 g5 = fileData[i + 1] >> 3;
-            u16 b5 = fileData[i + 2] >> 3;
-
-            u16 col = ARGB16(1, r5, g5, b5);
-
-            for (int j = 0; j < palTotal;j++)
-            {
-                if (col == pal[j])
-                {
-                    gfx[gfxPos] =j;
-                    gfxPos++;
-                    break;
-                }
-            }
-        }
-
-
-    }
-    else
-    {
-        TRACELOG(LOG_ERROR,"PROCESSPPM: FILE DATA IS NULL");
-        return (Image){0};
-    }
-
-    return (Image){pal,gfx,size,1,palTotal};
-
-}
 #include "lodepng.h"
 
 #define TO5BITS >>3 //useless macro go brrr
-Image processPng(unsigned char* image, int height, int width)
+Image processPngFast(unsigned char* image,int height, int width)
 {
-    
-    if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); /*return (Image){0};*/}
-    if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); /*return (Image){0} ;*/}
+
+    if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); return (Image){0};}
+    if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); return (Image){0} ;}
 
     u16* pal = malloc(sizeof(u16) * 256);
-
-    pal[0] = ARGB16(1, image[0]TO5BITS, image[1]TO5BITS, image[2]TO5BITS);
-    int palTotal = 1;
-
+    int palTotal = 0;
+    u16* paletteTable = malloc(sizeof(u16) * 32768);
+    memset(paletteTable, 0xFFFF, sizeof(paletteTable));
     u8* gfx = malloc(sizeof(u8) * width * height);
 
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
         {
+
             int index = (y * width + x) * 3;
             int R = image[index]TO5BITS;
             int G = image[index + 1]TO5BITS;
             int B = image[index + 2] TO5BITS;
-            u16 col15 = ARGB16(1, R, G, B);
+            u16 col = ARGB16(1, R, G, B);
+            u16 paletteTableIndex = ((col & 0xFFFE) >> 1) | ((col & 0x0001) << 15);
+            if (paletteTable[paletteTableIndex] == 0xFFFF)
+            {
+                pal[palTotal] = col;
+                paletteTable[paletteTableIndex] = palTotal;
+                palTotal++;
+                gfx[y * width + x] = (u8)paletteTable[paletteTableIndex];
+            }
+            else
+            {
+                gfx[y * width + x] = (u8)paletteTable[paletteTableIndex];
+            }
 
-            bool uniqueCol = true;
-            for (int p = 0; p < palTotal; p++)
-            {
-                if (pal[p] == col15) { uniqueCol = false; break; }
-            }
-            if (uniqueCol)
-            {
-                if (palTotal >= 256) { TRACELOG(LOG_WARNING, "IMAGE: TOO MANY COLOURS -- MAX 255 CURRENT %d",palTotal); break; }
-                pal[palTotal++] = col15;
-            }
-
-            for (int i = 0; i < palTotal; i++)
-            {
-                if (col15 == pal[i]) gfx[y * width + x] = i;
-            }
         }
     }
     free(image);
     return (Image){pal,gfx,(Vector2){(float)width,(float)height},1,palTotal};
 }
+
 Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *fileData, int dataSize)
 {
 
@@ -250,18 +150,14 @@ Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *f
             unsigned width, height;
 
             unsigned error = lodepng_decode24(&image, &width, &height,fileData,dataSize);
-            if(error) TRACELOG(LOG_ERROR,"error %u: %s\n", error, lodepng_error_text(error));
+            if(error) TRACELOG(LOG_ERROR,"[LOADIMAGE] LODEPNG ERROR %u: %s\n", error, lodepng_error_text(error));
             UnloadFileData(fileData);
 
-            return processPng(image,(int)height,(int)width);
+            return processPngFast(image,(int)height,(int)width);
         }
-        if(strcmp(fileType, ".ppm") == 0)
+        else
         {
-            Image image = processPPM(fileData,dataSize);
-            UnloadFileData(fileData);
-            return image;
-
-
+            TRACELOG(LOG_ERROR,"[LOADIMAGE] INVALID FILE TYPE");
         }
 
         UnloadFileData(fileData);
@@ -275,7 +171,6 @@ void UnloadImage(Image image)
     free(image.gfx);
     free(image.pal);
     image.size.x = 0; image.size.y = 0;
-   // free(image.image);
 }
 
 
