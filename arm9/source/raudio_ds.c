@@ -3,7 +3,7 @@
 #include <nds.h>
 #include <stdlib.h>
 #include "as_lib9.h"
-
+#include <string.h>
 typedef struct
 {
     int pitch;
@@ -18,9 +18,6 @@ typedef struct
     MusicState *s;
 }Music;
 
-
-
-
 typedef struct
 {
    SoundInfo s;
@@ -32,10 +29,7 @@ typedef struct
     SoundInfo s;
     int channel;
     bool playing;
-    u32 pausedOffset;
     bool alias;
-    bool pendingHandoff;
-    u32 startTick;
     int id;
     int basePitch;
 }SoundState;
@@ -57,43 +51,112 @@ uint16_t read16(const u8 *p)
 {
     return p[0] | (p[1] << 8);
 }
+// credit to https://gist.github.com/hasan-hasanov/affe3d32129e5e80e3705ab1f691a622
 Wave LoadWaveFromMemory(const char *fileType, const unsigned char *dat, int dataSize)
 {
     Wave w;
+    int offset = 0;
     if (dat != NULL)
     {
 
+        char RIFF[5] = {dat[0],dat[1],dat[2],dat[3],'\n'};
+        offset += 4;
 
-        //w.s.data = &dat[44];
-        if (dat[20] == 1)
+        int riffChunkSize = read32(&dat[offset]);
+        offset += 1;
+
+        char WAVE[5] = {dat[0 + offset],dat[1 + offset], dat[2 + offset], dat[3 + offset],'\n'};
+        offset += 4;
+
+        char next[5] =  {dat[0 + offset],dat[1 + offset], dat[2 + offset], dat[3 + offset],'\n'};
+        offset += 4;
+
+        if (strcmp(next,"JUNK") == 0)
         {
-            int fmt = read16(&dat[34]);
-            if (fmt == 8)
-            {
-                w.s.format = AS_PCM_8BIT;
-            }
-            else if (fmt == 16)
-            {
-                w.s.format = AS_PCM_16BIT;
-            }
+            int size = read32(&dat[offset]);
+            offset += 1;
+
+            offset += 28;
         }
-        int channels = read16(&dat[22]);
-        if (channels == 1)
+        char fmtChunkId[5] =  {dat[0 + offset],dat[1 + offset], dat[2 + offset], dat[3 + offset],'\n'};
+        offset += 4;
+
+        if (strcmp(fmtChunkId,"fmt ") != 0)
         {
-            w.s.rate = read32(&dat[24]);
-        }
-        else if (channels == 2)
-        {
-            w.s.rate = read32(&dat[24]) * 2;
+            TRACELOG(LOG_ERROR,"[PARSE_WAV] NO FMT HEADER");
         }
 
+        int fmtChunkSize = read32(&dat[offset]);
+        offset+= 1;
+
+        int audioFormat = read16(&dat[offset]);
+        offset += 1;
+
+        int channels = read16(&dat[offset]);
+        offset += 1;
+
+        int sampleRate = read32(&dat[offset]);
+
+        //byterate, not sure if i need
+        offset += 1;
+
+        //alignment
+        offset += 1;
+
+        int bitsPerSample = read16(&dat[offset]);
+        offset += 1;
+
+        int extansionSize;
+        if (fmtChunkSize == 18)
+        {
+            extansionSize = read16(&dat[offset]);
+            offset += 1;
+        }
+        else if (fmtChunkSize == 40)
+        {
+            extansionSize = read16(&dat[offset]);
+            offset += 1;
+
+            int validBitsPerSample = read16(&dat[offset]);
+            offset += 1;
+
+            int channnelMask = read32(&dat[offset]);
+            offset += 1;
+        }
+        else if (fmtChunkSize != 16) TRACELOG(LOG_ERROR, "INVALID WAV FORMAT");
+
+        char nextSection[5] = {dat[0 + offset],dat[1 + offset], dat[2 + offset], dat[3 + offset],'\n'};
+        offset += 4;
+
+        if (strcmp(nextSection,"fact") == 0)
+        {
+            int factChunkSize = read32(&dat[offset]);
+            offset++;
+
+            int sampleLength = read32(&dat[offset]);
+            offset++;
+
+            for (int i = 0; i < 4; i++)
+            {
+                nextSection[i] = dat[0 + offset];
+                offset++;
+            }
+        }
+        else if (strcmp(nextSection,"data") != 0)
+        {
+            printf("bad");
+        }
+
+        w.s.data = &dat[offset];
+        w.s.rate = sampleRate;
+        w.s.format = (audioFormat == 8) ? AS_PCM_8BIT : AS_PCM_16BIT;
 
         //int ch = AS_SoundPlay(s);
         //printf("%d",ch);
         //printf("channels=%d rate=%ld format=%d size=%lu\n", channels, w.s.rate, w.s.format, w.s.size);
         u32 size = read32(&dat[40]);
 
-        memmove(dat,dat + 44,size);
+        memmove(dat,dat + offset,size);
         void* shrunk = realloc(dat,size);
         dat = shrunk;
         w.s.data = dat;
