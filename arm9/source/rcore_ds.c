@@ -100,7 +100,6 @@ void InitWindow(int width, int height, const char* title)
     DS.currentMainScreen = 0;
 
     DS.audioOn = false;
-
     bool init_ok = nitroFSInit(NULL);
     if (!init_ok)
     {
@@ -1746,3 +1745,80 @@ Vector2 GetGestureDragVector(void);                     // Get gesture drag vect
 float GetGestureDragAngle(void);                        // Get gesture drag angle
 Vector2 GetGesturePinchVector(void);                    // Get gesture pinch delta
 float GetGesturePinchAngle(void);*/
+
+
+// Recursively fill a FilePathList (helper used by LoadDirectoryFilesEx).
+// Walks basePath, applies the same filter rules used by
+// GetDirectoryFileCountEx (which must be called first to size files->paths),
+// and appends each matching path (basePath prepended) into files->paths[]
+// starting at files->count.
+void ScanDirectoryFiles(const char *basePath, FilePathList *files,
+                        const char *filter, unsigned int maxFiles,
+                        bool scanSubdirs)
+{
+    if ((basePath == NULL) || (files == NULL) || (files->paths == NULL)) return;
+    if ((filter != NULL) && (filter[0] == '\0')) filter = NULL;
+
+    char path[MAX_FILEPATH_LENGTH] = { 0 };
+    struct dirent *entity;
+    DIR *dir = opendir(basePath);
+    if (dir == NULL)
+    {
+        TRACELOG(LOG_WARNING, "FILEIO: Directory cannot be opened (%s)", basePath);
+        return;
+    }
+
+    while ((entity = readdir(dir)) != NULL)
+    {
+        if ((strcmp(entity->d_name, ".") == 0) || (strcmp(entity->d_name, "..") == 0))
+            continue;
+
+        int pathLength = snprintf(path, MAX_FILEPATH_LENGTH, "%s/%s", basePath, entity->d_name);
+
+        if ((pathLength < 0) || (pathLength >= MAX_FILEPATH_LENGTH))
+        {
+            TRACELOG(LOG_WARNING, "FILEIO: Path longer than %d characters (%s...)", MAX_FILEPATH_LENGTH, basePath);
+            continue;
+        }
+
+        bool isFile = IsPathFile(path);
+
+        if (isFile)
+        {
+            // Files match when filter is NULL, "*.*", "FILES*", or matches ext
+            if ((filter == NULL) ||
+                (strstr(filter, FILE_FILTER_TAG_ALL) != NULL) ||
+                (strstr(filter, FILE_FILTER_TAG_FILE_ONLY) != NULL) ||
+                IsFileExtension(path, filter))
+            {
+                if (files->count < maxFiles)
+                {
+                    strncpy(files->paths[files->count], path, MAX_FILEPATH_LENGTH - 1);
+                    files->paths[files->count][MAX_FILEPATH_LENGTH - 1] = '\0';
+                    files->count++;
+                }
+            }
+        }
+        else
+        {
+            // Directories match when filter is "*.*" or "DIRS*"
+            if ((filter != NULL) &&
+                ((strstr(filter, FILE_FILTER_TAG_ALL) != NULL) ||
+                 (strstr(filter, FILE_FILTER_TAG_DIR_ONLY) != NULL)))
+            {
+                if (files->count < maxFiles)
+                {
+                    strncpy(files->paths[files->count], path, MAX_FILEPATH_LENGTH - 1);
+                    files->paths[files->count][MAX_FILEPATH_LENGTH - 1] = '\0';
+                    files->count++;
+                }
+            }
+
+            // Recurse into subdirectories if requested
+            if (scanSubdirs)
+                ScanDirectoryFiles(path, files, filter, maxFiles, scanSubdirs);
+        }
+    }
+
+    closedir(dir);
+}

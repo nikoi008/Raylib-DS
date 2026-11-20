@@ -56,7 +56,7 @@ void CloseAudioDevice(void);                                    // Close the aud
 bool IsAudioDeviceReady(void);                                  // Check if audio device has been initialized successfully
 void SetMasterVolume(float volume);                             // Set master volume (listener)
 float GetMasterVolume(void);                                    // Get master volume (listener)
-
+void UpdateMusicStream(Music m);
 // Wave/Sound loading/unloading functions
 Wave LoadWave(const char *fileName);                            // Load wave data from file
 Wave LoadWaveFromMemory(const char *fileType, const unsigned char *fileData, int dataSize); // Load wave from memory buffer, fileType refers to extension: i.e. '.wav'
