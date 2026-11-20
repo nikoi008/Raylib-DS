@@ -192,7 +192,7 @@ Texture2D LoadTexture(const char* filename)
     Image i = LoadImage(filename);
     t = LoadTextureFromImage(i);
     uint16_t texcoords[4] = {0, 0, i.size.x,i.size.y};
-    glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256,i.pal,i.gfx);
+    //glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256,i.pal,i.gfx);
     return t;
 }
 
