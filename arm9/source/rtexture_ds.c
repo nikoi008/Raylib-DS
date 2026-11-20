@@ -98,7 +98,7 @@ Image LoadImageAnim(const char* filename, int frames)
     }
 }
 #include "lodepng.h"
-
+#define RGBA16(r,g,b,a) ((((a) ? 1 : 0) << 15) | (((r) & 31) << 0) | (((g) & 31) << 5) | (((b) & 31) << 10))
 #define TO5BITS >>3 //useless macro go brrr
 Image processPngFast(unsigned char* image,int height, int width)
 {
@@ -109,7 +109,7 @@ Image processPngFast(unsigned char* image,int height, int width)
     u16* pal = malloc(sizeof(u16) * 256);
     int palTotal = 0;
     u16* paletteTable = malloc(sizeof(u16) * 32768);
-    memset(paletteTable, 0xFFFF, sizeof(paletteTable));
+    memset(paletteTable, 0xFF, sizeof(u16) * 32768);
     u8* gfx = malloc(sizeof(u8) * width * height);
 
     for (int y = 0; y < height; y++)
@@ -118,11 +118,12 @@ Image processPngFast(unsigned char* image,int height, int width)
         {
 
             int index = (y * width + x) * 3;
-            int R = image[index]TO5BITS;
-            int G = image[index + 1]TO5BITS;
-            int B = image[index + 2] TO5BITS;
+            int R = image[index] >> 3;
+            int G = image[index + 1] >> 3;
+            int B = image[index + 2] >> 3;
             u16 col = ARGB16(1, R, G, B);
-            u16 paletteTableIndex = ((col & 0xFFFE) >> 1) | ((col & 0x0001) << 15);
+            //u16 paletteTableIndex = ((col & 0xFFFE) >> 1) | ((col & 0x0001) << 15);
+            u16 paletteTableIndex = RGBA16(R,G,B,0);
             if (paletteTable[paletteTableIndex] == 0xFFFF)
             {
                 pal[palTotal] = col;
@@ -137,10 +138,56 @@ Image processPngFast(unsigned char* image,int height, int width)
 
         }
     }
+    printPalette(pal,palTotal);
+    free(paletteTable);
     free(image);
-    return (Image){pal,gfx,(Vector2){(float)width,(float)height},1,palTotal};
+    return (Image){pal,gfx,(Vector2i){width,height},1,palTotal};
 }
 
+
+Image processPng(unsigned char* image, int height, int width)
+{
+
+    if ((height > 0 && (height & (height - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE HEIGHT MUST BE A POWER OF 2"); /*return (Image){0};*/}
+    if ((width > 0 && (width & (width - 1)) != 0)){TRACELOG(LOG_INFO,"IMAGE width MUST BE A POWER OF 2"); /*return (Image){0} ;*/}
+
+    u16* pal = malloc(sizeof(u16) * 256);
+
+    pal[0] = ARGB16(1, image[0]TO5BITS, image[1]TO5BITS, image[2]TO5BITS);
+    int palTotal = 1;
+
+    u8* gfx = malloc(sizeof(u8) * width * height);
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            int index = (y * width + x) * 3;
+            int R = image[index]TO5BITS;
+            int G = image[index + 1]TO5BITS;
+            int B = image[index + 2] TO5BITS;
+            u16 col15 = ARGB16(1, R, G, B);
+
+            bool uniqueCol = true;
+            for (int p = 0; p < palTotal; p++)
+            {
+                if (pal[p] == col15) { uniqueCol = false; break; }
+            }
+            if (uniqueCol)
+            {
+                if (palTotal >= 256) { TRACELOG(LOG_WARNING, "IMAGE: TOO MANY COLOURS -- MAX 255 CURRENT %d",palTotal); break; }
+                pal[palTotal++] = col15;
+            }
+
+            for (int i = 0; i < palTotal; i++)
+            {
+                if (col15 == pal[i]) gfx[y * width + x] = i;
+            }
+        }
+    }
+    free(image);
+    return (Image){pal,gfx,(Vector2i){width,height},1,palTotal};
+}
 Image LoadImageFromMemory(const unsigned char *fileType,  const unsigned char *fileData, int dataSize)
 {
 
@@ -191,8 +238,10 @@ Texture2D LoadTexture(const char* filename)
     Texture2D t;
     Image i = LoadImage(filename);
     t = LoadTextureFromImage(i);
+    t.frames = 1;
     uint16_t texcoords[4] = {0, 0, i.size.x,i.size.y};
     //glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256,i.pal,i.gfx);
+    glLoadSpriteSet(t.image,1,texcoords,GL_RGB256,i.size.x, i.size.y,TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,256,i.pal,i.gfx);
     return t;
 }
 
@@ -244,9 +293,10 @@ void DrawTextureAnim(Texture2D texture, int frame, int posX, int posY, Color tin
 void DrawTexture(Texture2D texture, int posX, int posY, Color tint)
 {
     //rgb = (tint.r,tint.g,tint.b);
-  //  glColor(ARGB16(1,tint.r >> 3, tint.g >> 3, tint.b >> 3));
+    glColor(ARGB16(1,tint.r >> 3, tint.g >> 3, tint.b >> 3));
     //todo add tint
     glSprite(posX, posY, GL_FLIP_NONE, texture.image);
+    glColor(0x7FFF);
 }
 
 
@@ -281,6 +331,7 @@ void DrawTextureRec(Texture2D texture, Rectangle source, Vector2 position, Color
     glTexCoord2i(u2, v1); glVertex2v16(x2, y1);
 
     glEnd();
+    glColor(0x7FFF);
 }
 
 void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint)

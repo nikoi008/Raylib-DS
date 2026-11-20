@@ -14,7 +14,7 @@ typedef struct
 {
     u16 *pal;
     u8* gfx;
-    Vector2 size;
+    Vector2i size;
     int frames;
     int colors;
 }Image;
